@@ -171,12 +171,12 @@ fun MainScreen(
                         .padding(horizontal = 12.dp, vertical = 2.dp)
                 )
 
-                // Re-ordered Tabs: Tab 0 = Collections, Tab 1 = Properties
+                // Re-ordered Tabs: Tab 0 = Rent, Tab 1 = Properties
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Collections (${collections.size})") },
+                        text = { Text("Rent (${collections.size})") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null) }
                     )
                     Tab(
@@ -186,6 +186,7 @@ fun MainScreen(
                         icon = { Icon(Icons.Default.HomeWork, contentDescription = null) }
                     )
                 }
+
             }
         },
         bottomBar = {
