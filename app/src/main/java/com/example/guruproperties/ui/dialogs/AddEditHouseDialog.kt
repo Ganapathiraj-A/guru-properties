@@ -50,10 +50,11 @@ fun AddEditHouseDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (house == null) "Add Property (Table 1)" else "Edit Property details",
+                text = if (house == null) "Add Property" else "Edit Property Details",
                 style = MaterialTheme.typography.titleLarge
             )
         },
+
         text = {
             Column(
                 modifier = Modifier

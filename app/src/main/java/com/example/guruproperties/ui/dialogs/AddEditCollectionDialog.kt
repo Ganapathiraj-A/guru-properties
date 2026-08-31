@@ -65,10 +65,11 @@ fun AddEditCollectionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (collection == null) "Add Rent Collection (Table 2)" else "Edit Rent Collection",
+                text = if (collection == null) "Add Rent Collection" else "Edit Rent Collection",
                 style = MaterialTheme.typography.titleLarge
             )
         },
+
         text = {
             Column(
                 modifier = Modifier

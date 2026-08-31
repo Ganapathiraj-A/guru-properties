@@ -57,10 +57,11 @@ fun PropertyListScreen(
                     tint = MaterialTheme.colorScheme.outline
                 )
                 Text(
-                    text = "No property details found (Table 1)",
+                    text = "No property details found",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
             }
         }
     } else {

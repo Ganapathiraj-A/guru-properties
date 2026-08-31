@@ -102,10 +102,11 @@ fun RentCollectionScreen(
                         tint = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        text = "No rent collections recorded yet (Table 2)",
+                        text = "No rent collections recorded yet",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
                 }
             }
         } else {

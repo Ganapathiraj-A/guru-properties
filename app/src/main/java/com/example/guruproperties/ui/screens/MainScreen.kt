@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -160,18 +162,18 @@ fun MainScreen(
                         .padding(horizontal = 12.dp, vertical = 2.dp)
                 )
 
-                // Tab Row: Table 1 (Properties), Table 2 (Rent Collections), User Management
+                // Tab Row: Properties, Rent Collections, User Management
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Table 1: Properties (${houses.size})") },
+                        text = { Text("Properties (${houses.size})") },
                         icon = { Icon(Icons.Default.HomeWork, contentDescription = null) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Table 2: Collections (${collections.size})") },
+                        text = { Text("Collections (${collections.size})") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null) }
                     )
                     Tab(
@@ -185,14 +187,17 @@ fun MainScreen(
         },
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shadowElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth()
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 12.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -208,7 +213,7 @@ fun MainScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 6.dp)
                         )
-                        Text("Check / Download Latest APK Update")
+                        Text("Check / Download APK Update")
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -228,6 +233,7 @@ fun MainScreen(
                 }
             }
         },
+
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
