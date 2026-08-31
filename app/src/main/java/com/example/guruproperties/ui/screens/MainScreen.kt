@@ -11,7 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.HomeWork
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,10 +43,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
 import com.example.guruproperties.ui.dialogs.AddEditCollectionDialog
 import com.example.guruproperties.ui.dialogs.AddEditHouseDialog
+import com.example.guruproperties.ui.dialogs.AddEditUserDialog
 import com.example.guruproperties.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,9 +56,21 @@ import com.example.guruproperties.ui.viewmodel.MainViewModel
 fun MainScreen(
     viewModel: MainViewModel = viewModel()
 ) {
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    if (currentUser == null) {
+        LoginScreen(
+            onLoginDemo = { email, name ->
+                viewModel.loginAsDemoUser(email, name)
+            }
+        )
+        return
+    }
+
     var selectedTab by remember { mutableIntStateOf(0) }
     val houses by viewModel.houses.collectAsState()
     val collections by viewModel.collections.collectAsState()
+    val users by viewModel.users.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     var editingHouse by remember { mutableStateOf<House?>(null) }
@@ -62,22 +79,41 @@ fun MainScreen(
     var editingCollection by remember { mutableStateOf<RentCollection?>(null) }
     var showAddCollectionDialog by remember { mutableStateOf(false) }
 
+    var editingUser by remember { mutableStateOf<AppUser?>(null) }
+    var showAddUserDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Guru Properties",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CloudDone,
+                                    contentDescription = "Cloud Synced",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(
-                                text = "Guru Properties",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleLarge
+                                text = "Logged in: ${currentUser?.displayName ?: ""} (${currentUser?.email ?: ""})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.signOut() }) {
                             Icon(
-                                imageVector = Icons.Default.CloudDone,
-                                contentDescription = "Cloud Synced",
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = "Sign Out",
+                                tint = MaterialTheme.colorScheme.error
                             )
                         }
                     },
@@ -90,7 +126,7 @@ fun MainScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.searchQuery.value = it },
-                    placeholder = { Text("Search by HouseID, Name, Tenant...") },
+                    placeholder = { Text("Search properties, payments, or users...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -106,10 +142,10 @@ fun MainScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .padding(horizontal = 12.dp, vertical = 2.dp)
                 )
 
-                // Tab Row: Table 1 vs Table 2
+                // Tab Row: Table 1 (Properties), Table 2 (Rent Collections), User Management
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
@@ -120,8 +156,14 @@ fun MainScreen(
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Table 2: Rent Collections (${collections.size})") },
+                        text = { Text("Table 2: Collections (${collections.size})") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null) }
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = { Text("Users (${users.size})") },
+                        icon = { Icon(Icons.Default.Group, contentDescription = null) }
                     )
                 }
             }
@@ -129,19 +171,26 @@ fun MainScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    if (selectedTab == 0) {
-                        editingHouse = null
-                        showAddHouseDialog = true
-                    } else {
-                        editingCollection = null
-                        showAddCollectionDialog = true
+                    when (selectedTab) {
+                        0 -> {
+                            editingHouse = null
+                            showAddHouseDialog = true
+                        }
+                        1 -> {
+                            editingCollection = null
+                            showAddCollectionDialog = true
+                        }
+                        2 -> {
+                            editingUser = null
+                            showAddUserDialog = true
+                        }
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = if (selectedTab == 0) "Add Property" else "Add Collection"
+                    imageVector = if (selectedTab == 2) Icons.Default.PersonAdd else Icons.Default.Add,
+                    contentDescription = "Add Item"
                 )
             }
         }
@@ -172,6 +221,16 @@ fun MainScreen(
                         viewModel.deleteCollection(docId)
                     }
                 )
+                2 -> UserManagementScreen(
+                    users = users,
+                    onEditUser = { user ->
+                        editingUser = user
+                        showAddUserDialog = true
+                    },
+                    onDeleteUser = { docId ->
+                        viewModel.deleteUser(docId)
+                    }
+                )
             }
         }
     }
@@ -196,6 +255,17 @@ fun MainScreen(
             onSave = { collection ->
                 viewModel.saveCollection(collection)
                 showAddCollectionDialog = false
+            }
+        )
+    }
+
+    if (showAddUserDialog) {
+        AddEditUserDialog(
+            user = editingUser,
+            onDismiss = { showAddUserDialog = false },
+            onSave = { user ->
+                viewModel.saveUser(user)
+                showAddUserDialog = false
             }
         )
     }

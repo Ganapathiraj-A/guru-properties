@@ -2,6 +2,7 @@ package com.example.guruproperties.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
 import com.example.guruproperties.data.repository.PropertyRepository
@@ -17,6 +18,22 @@ class MainViewModel(
 ) : ViewModel() {
 
     val searchQuery = MutableStateFlow("")
+
+    val currentUser: StateFlow<AppUser?> = repository.currentUserState
+
+    val users: StateFlow<List<AppUser>> = repository.getUsersFlow()
+        .combine(searchQuery) { userList, query ->
+            if (query.isBlank()) {
+                userList
+            } else {
+                userList.filter {
+                    it.displayName.contains(query, ignoreCase = true) ||
+                            it.email.contains(query, ignoreCase = true) ||
+                            it.role.contains(query, ignoreCase = true)
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val houses: StateFlow<List<House>> = repository.getHousesFlow()
         .combine(searchQuery) { houseList, query ->
@@ -46,6 +63,26 @@ class MainViewModel(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun loginAsDemoUser(email: String, name: String) {
+        repository.loginAsDemoUser(email, name)
+    }
+
+    fun signOut() {
+        repository.signOut()
+    }
+
+    fun saveUser(user: AppUser) {
+        viewModelScope.launch {
+            repository.saveUser(user)
+        }
+    }
+
+    fun deleteUser(docId: String) {
+        viewModelScope.launch {
+            repository.deleteUser(docId)
+        }
+    }
 
     fun saveHouse(house: House) {
         viewModelScope.launch {

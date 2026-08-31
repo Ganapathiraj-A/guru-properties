@@ -20,10 +20,8 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        debug {
-            setProperty("archivesBaseName", "manageProperties")
-        }
     }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -64,6 +62,9 @@ dependencies {
   // Firebase
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore.ktx)
+  implementation(libs.firebase.auth.ktx)
+  implementation(libs.play.services.auth)
+
 
   // Compose
   implementation(libs.androidx.compose.ui)
