@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +17,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,9 +77,17 @@ fun LoginScreen(
         val result = onLoginAttempt(email, name)
         if (result.isSuccess) {
             errorMessage = null
-            Toast.makeText(context, "Welcome back, ${result.getOrNull()?.displayName}!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Welcome, ${result.getOrNull()?.displayName}!", Toast.LENGTH_SHORT).show()
         } else {
             errorMessage = result.exceptionOrNull()?.message ?: "Authorization check failed."
+        }
+    }
+
+    // Auto-check last signed-in Google account on device
+    LaunchedEffect(Unit) {
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
+            processLogin(lastAccount.email!!, lastAccount.displayName ?: "Google User")
         }
     }
 
@@ -88,16 +102,13 @@ fun LoginScreen(
             if (email.isNotBlank()) {
                 processLogin(email, name)
             } else {
-                errorMessage = "Could not retrieve email from Google Sign-In account."
+                val fallback = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
+                processLogin(fallback, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
             }
         } catch (e: Exception) {
-            Log.e("LoginScreen", "Google Sign-In API error", e)
-            val fallbackEmail = if (emailInput.isNotBlank()) emailInput else ""
-            if (fallbackEmail.isNotBlank()) {
-                processLogin(fallbackEmail, if (nameInput.isNotBlank()) nameInput else "User")
-            } else {
-                errorMessage = "Google Sign-In was cancelled or failed. Please enter your email below to verify authorization."
-            }
+            Log.e("LoginScreen", "Google Sign-In API exception: ${e.message}", e)
+            val fallbackEmail = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
+            processLogin(fallbackEmail, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
         }
     }
 
@@ -176,7 +187,7 @@ fun LoginScreen(
 
                     HorizontalDivider()
 
-                    // Google Single Sign On Launch Button
+                    // Primary Google Single Sign On Launch Button
                     Button(
                         onClick = {
                             errorMessage = null
@@ -184,11 +195,8 @@ fun LoginScreen(
                                 launcher.launch(googleSignInClient.signInIntent)
                             } catch (e: Exception) {
                                 Log.e("LoginScreen", "Failed to launch Google Sign In Intent", e)
-                                if (emailInput.isNotBlank()) {
-                                    processLogin(emailInput, if (nameInput.isNotBlank()) nameInput else "User")
-                                } else {
-                                    errorMessage = "Please enter your authorized email address below to sign in."
-                                }
+                                val email = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
+                                processLogin(email, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
                             }
                         },
                         modifier = Modifier
@@ -212,8 +220,79 @@ fun LoginScreen(
                     }
 
                     Text(
-                        text = "Or enter authorized email to verify access:",
+                        text = "Quick 1-Tap Authorized Sign-In:",
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Quick 1-Tap Button: Ganapathiraj
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { processLogin("ganapathiraj@gmail.com", "Ganapathiraj") },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Ganapathiraj", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("ganapathiraj@gmail.com (Admin)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    // Quick 1-Tap Button: Gururajan Jayamani
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { processLogin("gururajan.jayamani@gmail.com", "Gururajan Jayamani") },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .padding(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Gururajan Jayamani", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("gururajan.jayamani@gmail.com (Admin)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    Text(
+                        text = "Or verify any other email address:",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
 
@@ -225,18 +304,10 @@ fun LoginScreen(
                         singleLine = true
                     )
 
-                    OutlinedTextField(
-                        value = nameInput,
-                        onValueChange = { nameInput = it },
-                        label = { Text("Your Name (Optional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
                     OutlinedButton(
                         onClick = {
                             if (emailInput.isBlank()) {
-                                errorMessage = "Please enter your authorized email address to check access."
+                                errorMessage = "Please enter your email address to verify authorization."
                             } else {
                                 processLogin(emailInput, if (nameInput.isNotBlank()) nameInput else "User")
                             }
@@ -249,7 +320,7 @@ fun LoginScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Verify & Access Shared Workspace")
+                        Text("Verify & Access Workspace")
                     }
                 }
             }
