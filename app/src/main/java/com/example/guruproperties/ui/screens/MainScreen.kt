@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,12 +18,12 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -38,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -77,7 +77,7 @@ fun MainScreen(
 
     if (currentUser == null) {
         LoginScreen(
-            onLoginDemo = { email, name ->
+            onLoginSuccess = { email, name ->
                 viewModel.loginAsDemoUser(email, name)
             }
         )
@@ -98,6 +98,8 @@ fun MainScreen(
 
     var editingUser by remember { mutableStateOf<AppUser?>(null) }
     var showAddUserDialog by remember { mutableStateOf(false) }
+
+    var showSettingsUserAdminDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -126,6 +128,13 @@ fun MainScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = { showSettingsUserAdminDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings / User Administration",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         IconButton(onClick = { viewModel.signOut() }) {
                             Icon(
                                 imageVector = Icons.Default.Logout,
@@ -143,7 +152,7 @@ fun MainScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.searchQuery.value = it },
-                    placeholder = { Text("Search properties, payments, or users...") },
+                    placeholder = { Text("Search properties, collections, or users...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -162,25 +171,19 @@ fun MainScreen(
                         .padding(horizontal = 12.dp, vertical = 2.dp)
                 )
 
-                // Tab Row: Properties, Rent Collections, User Management
+                // Re-ordered Tabs: Tab 0 = Collections, Tab 1 = Properties
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Properties (${houses.size})") },
-                        icon = { Icon(Icons.Default.HomeWork, contentDescription = null) }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
                         text = { Text("Collections (${collections.size})") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null) }
                     )
                     Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("Users (${users.size})") },
-                        icon = { Icon(Icons.Default.Group, contentDescription = null) }
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text("Properties (${houses.size})") },
+                        icon = { Icon(Icons.Default.HomeWork, contentDescription = null) }
                     )
                 }
             }
@@ -192,7 +195,6 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-
             ) {
                 Row(
                     modifier = Modifier
@@ -233,29 +235,21 @@ fun MainScreen(
                 }
             }
         },
-
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    when (selectedTab) {
-                        0 -> {
-                            editingHouse = null
-                            showAddHouseDialog = true
-                        }
-                        1 -> {
-                            editingCollection = null
-                            showAddCollectionDialog = true
-                        }
-                        2 -> {
-                            editingUser = null
-                            showAddUserDialog = true
-                        }
+                    if (selectedTab == 0) {
+                        editingCollection = null
+                        showAddCollectionDialog = true
+                    } else {
+                        editingHouse = null
+                        showAddHouseDialog = true
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    imageVector = if (selectedTab == 2) Icons.Default.PersonAdd else Icons.Default.Add,
+                    imageVector = Icons.Default.Add,
                     contentDescription = "Add Item"
                 )
             }
@@ -267,17 +261,7 @@ fun MainScreen(
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> PropertyListScreen(
-                    houses = houses,
-                    onEditHouse = { house ->
-                        editingHouse = house
-                        showAddHouseDialog = true
-                    },
-                    onDeleteHouse = { docId ->
-                        viewModel.deleteHouse(docId)
-                    }
-                )
-                1 -> RentCollectionScreen(
+                0 -> RentCollectionScreen(
                     collections = collections,
                     onEditCollection = { collection ->
                         editingCollection = collection
@@ -287,14 +271,14 @@ fun MainScreen(
                         viewModel.deleteCollection(docId)
                     }
                 )
-                2 -> UserManagementScreen(
-                    users = users,
-                    onEditUser = { user ->
-                        editingUser = user
-                        showAddUserDialog = true
+                1 -> PropertyListScreen(
+                    houses = houses,
+                    onEditHouse = { house ->
+                        editingHouse = house
+                        showAddHouseDialog = true
                     },
-                    onDeleteUser = { docId ->
-                        viewModel.deleteUser(docId)
+                    onDeleteHouse = { docId ->
+                        viewModel.deleteHouse(docId)
                     }
                 )
             }
@@ -321,6 +305,55 @@ fun MainScreen(
             onSave = { collection ->
                 viewModel.saveCollection(collection)
                 showAddCollectionDialog = false
+            }
+        )
+    }
+
+    // Settings / User Administration Dialog
+    if (showSettingsUserAdminDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsUserAdminDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text("Settings & User Administration")
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            editingUser = null
+                            showAddUserDialog = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Text("+ Add Authorized User")
+                    }
+
+                    UserManagementScreen(
+                        users = users,
+                        onEditUser = { user ->
+                            editingUser = user
+                            showAddUserDialog = true
+                        },
+                        onDeleteUser = { docId ->
+                            viewModel.deleteUser(docId)
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSettingsUserAdminDialog = false }) {
+                    Text("Close")
+                }
             }
         )
     }

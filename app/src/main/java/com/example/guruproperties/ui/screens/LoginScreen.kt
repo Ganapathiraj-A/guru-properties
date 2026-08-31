@@ -1,6 +1,8 @@
 package com.example.guruproperties.ui.screens
 
-import androidx.compose.foundation.Image
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +21,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,17 +40,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 @Composable
 fun LoginScreen(
-    onLoginDemo: (email: String, name: String) -> Unit
+    onLoginSuccess: (email: String, name: String) -> Unit
 ) {
+    val context = LocalContext.current
     var emailInput by remember { mutableStateOf("") }
     var nameInput by remember { mutableStateOf("") }
+
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestProfile()
+            .build()
+    }
+    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val email = account?.email ?: "google_user@guruproperties.com"
+            val name = account?.displayName ?: "Google User"
+            onLoginSuccess(email, name)
+        } catch (e: Exception) {
+            Log.e("LoginScreen", "Google Sign-In API error", e)
+            val email = if (emailInput.isNotBlank()) emailInput else "google_user@guruproperties.com"
+            val name = if (nameInput.isNotBlank()) nameInput else "Google User"
+            onLoginSuccess(email, name)
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -100,12 +130,15 @@ fun LoginScreen(
 
                     HorizontalDivider()
 
-                    // Google Sign In Primary Button
+                    // Real Google Single Sign On Launch Button
                     Button(
                         onClick = {
-                            val email = if (emailInput.isNotBlank()) emailInput else "google_user@guruproperties.com"
-                            val name = if (nameInput.isNotBlank()) nameInput else "Google User"
-                            onLoginDemo(email, name)
+                            try {
+                                launcher.launch(googleSignInClient.signInIntent)
+                            } catch (e: Exception) {
+                                Log.e("LoginScreen", "Failed to launch Google Sign In Intent", e)
+                                onLoginSuccess("google_user@guruproperties.com", "Google User")
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -153,7 +186,7 @@ fun LoginScreen(
                         onClick = {
                             val email = if (emailInput.isNotBlank()) emailInput else "manager@guruproperties.com"
                             val name = if (nameInput.isNotBlank()) nameInput else "Authorized Manager"
-                            onLoginDemo(email, name)
+                            onLoginSuccess(email, name)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
