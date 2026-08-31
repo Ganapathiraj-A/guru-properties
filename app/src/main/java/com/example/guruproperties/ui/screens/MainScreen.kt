@@ -84,8 +84,8 @@ fun MainScreen(
 
     if (currentUser == null) {
         LoginScreen(
-            onLoginSuccess = { email, name ->
-                viewModel.loginAsDemoUser(email, name)
+            onLoginAttempt = { email, name ->
+                viewModel.attemptUserLogin(email, name)
             }
         )
         return

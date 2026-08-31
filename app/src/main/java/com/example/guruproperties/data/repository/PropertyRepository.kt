@@ -38,25 +38,33 @@ class PropertyRepository {
         }
     }
 
-    // Demo/Local Current User State
-    val currentUserState = MutableStateFlow<AppUser?>(
-        AppUser(
-            docId = "u1",
-            uid = "demo_admin_uid",
-            email = "admin@guruproperties.com",
-            displayName = "Guru Property Admin",
-            role = "Admin",
-            status = "Active",
-            addedAt = "2026-01-01"
-        )
-    )
+    // Default Logged In User State starts as null so user must authenticate
+    val currentUserState = MutableStateFlow<AppUser?>(null)
 
-    // Local App Users List
+    // Initial Authorized Users List with Gururajan Jayamani as default Admin & ganapathiraj@gmail.com
     private val localUsers = MutableStateFlow<List<AppUser>>(
         listOf(
             AppUser(
-                docId = "u1",
-                uid = "demo_admin_uid",
+                docId = "u_default_admin",
+                uid = "uid_gururajan",
+                email = "gururajan.jayamani@gmail.com",
+                displayName = "Gururajan Jayamani",
+                role = "Admin",
+                status = "Active",
+                addedAt = "2026-01-01"
+            ),
+            AppUser(
+                docId = "u_ganapathiraj",
+                uid = "uid_ganapathiraj",
+                email = "ganapathiraj@gmail.com",
+                displayName = "Ganapathiraj",
+                role = "Admin",
+                status = "Active",
+                addedAt = "2026-01-01"
+            ),
+            AppUser(
+                docId = "u_admin_fallback",
+                uid = "uid_admin_fallback",
                 email = "admin@guruproperties.com",
                 displayName = "Guru Property Admin",
                 role = "Admin",
@@ -64,8 +72,8 @@ class PropertyRepository {
                 addedAt = "2026-01-01"
             ),
             AppUser(
-                docId = "u2",
-                uid = "demo_manager_uid",
+                docId = "u_manager_fallback",
+                uid = "uid_manager_fallback",
                 email = "manager@guruproperties.com",
                 displayName = "Property Manager",
                 role = "Manager",
@@ -167,17 +175,44 @@ class PropertyRepository {
         currentUserState.value = null
     }
 
-    fun loginAsDemoUser(email: String = "admin@guruproperties.com", name: String = "Guru Property Admin") {
-        val user = AppUser(
-            docId = "demo_${System.currentTimeMillis()}",
-            uid = "uid_${email.hashCode()}",
-            email = email,
-            displayName = name,
-            role = "Admin",
-            status = "Active",
-            addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    /**
+     * Verifies if email is authorized in current user registry.
+     * Returns Result.success(AppUser) if authorized, or Result.failure(Exception) if unauthorized.
+     */
+    fun attemptUserLogin(email: String, name: String): Result<AppUser> {
+        val cleanEmail = email.trim().lowercase()
+        val allUsers = localUsers.value
+        
+        val matchedUser = allUsers.find { it.email.trim().lowercase() == cleanEmail }
+
+        if (matchedUser != null) {
+            if (matchedUser.status.equals("Inactive", ignoreCase = true)) {
+                return Result.failure(Exception("Account ($cleanEmail) has been set to Inactive by Admin."))
+            }
+            val activeUser = matchedUser.copy(displayName = if (matchedUser.displayName.isNotBlank()) matchedUser.displayName else name)
+            currentUserState.value = activeUser
+            return Result.success(activeUser)
+        }
+
+        // Special case: Default admins gururajan.jayamani@gmail.com and ganapathiraj@gmail.com are always authorized
+        if (cleanEmail == "gururajan.jayamani@gmail.com" || cleanEmail == "ganapathiraj@gmail.com") {
+            val defaultAdmin = AppUser(
+                docId = "u_${cleanEmail.hashCode()}",
+                uid = "uid_${cleanEmail.hashCode()}",
+                email = cleanEmail,
+                displayName = if (name.isNotBlank() && name != "Google User") name else if (cleanEmail.contains("gururajan")) "Gururajan Jayamani" else "Ganapathiraj",
+                role = "Admin",
+                status = "Active",
+                addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            )
+            saveUserLocally(defaultAdmin)
+            currentUserState.value = defaultAdmin
+            return Result.success(defaultAdmin)
+        }
+
+        return Result.failure(
+            Exception("Unauthorized Account: Email '$cleanEmail' is not registered as an authorized user. Please contact Administrator (gururajan.jayamani@gmail.com) to request access.")
         )
-        currentUserState.value = user
     }
 
     fun getUsersFlow(): Flow<List<AppUser>> = callbackFlow {
@@ -200,7 +235,9 @@ class PropertyRepository {
                             doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
                         }
                         if (users.isNotEmpty()) {
-                            localUsers.value = users
+                            // Merge with default admins to ensure gururajan.jayamani@gmail.com and ganapathiraj@gmail.com exist
+                            val merged = (localUsers.value + users).distinctBy { it.email.lowercase() }
+                            localUsers.value = merged
                         }
                         trySend(localUsers.value)
                     }

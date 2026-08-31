@@ -79,8 +79,8 @@ class MainViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun loginAsDemoUser(email: String, name: String) {
-        repository.loginAsDemoUser(email, name)
+    fun attemptUserLogin(email: String, name: String): Result<AppUser> {
+        return repository.attemptUserLogin(email, name)
     }
 
     fun signOut() {
