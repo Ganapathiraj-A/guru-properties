@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
+import com.example.guruproperties.data.model.Tenant
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -43,6 +44,7 @@ import java.util.Locale
 fun AddEditCollectionDialog(
     collection: RentCollection?,
     availableHouses: List<House>,
+    availableTenants: List<Tenant> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (RentCollection) -> Unit
 ) {
@@ -73,10 +75,13 @@ fun AddEditCollectionDialog(
 
     val paymentModes = listOf("UPI", "Cash", "Bank Transfer", "Cheque", "Credit Card", "Net Banking", "Other")
 
-    // Unique list of tenant names for Paid By dropdown
-    val tenantOptions = remember(availableHouses) {
-        availableHouses.map { it.tenantName }.filter { it.isNotBlank() }.distinct()
+    // Unique list of tenant names combining managed tenants and property tenants
+    val tenantOptions = remember(availableHouses, availableTenants) {
+        val namesFromTenants = availableTenants.map { it.tenantName }
+        val namesFromHouses = availableHouses.map { it.tenantName }
+        (namesFromTenants + namesFromHouses).filter { it.isNotBlank() }.distinct()
     }
+
 
     // Quick date options for PaidDT dropdown
     val dateOptions = remember {

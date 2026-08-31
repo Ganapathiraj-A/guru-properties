@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
+import com.example.guruproperties.data.model.Tenant
 import com.example.guruproperties.data.repository.PropertyRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +31,20 @@ class MainViewModel(
                     it.displayName.contains(query, ignoreCase = true) ||
                             it.email.contains(query, ignoreCase = true) ||
                             it.role.contains(query, ignoreCase = true)
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val tenants: StateFlow<List<Tenant>> = repository.getTenantsFlow()
+        .combine(searchQuery) { tenantList, query ->
+            if (query.isBlank()) {
+                tenantList
+            } else {
+                tenantList.filter {
+                    it.tenantName.contains(query, ignoreCase = true) ||
+                            it.houseId.contains(query, ignoreCase = true) ||
+                            it.phoneNumber.contains(query, ignoreCase = true)
                 }
             }
         }
@@ -81,6 +96,18 @@ class MainViewModel(
     fun deleteUser(docId: String) {
         viewModelScope.launch {
             repository.deleteUser(docId)
+        }
+    }
+
+    fun saveTenant(tenant: Tenant) {
+        viewModelScope.launch {
+            repository.saveTenant(tenant)
+        }
+    }
+
+    fun deleteTenant(docId: String) {
+        viewModelScope.launch {
+            repository.deleteTenant(docId)
         }
     }
 

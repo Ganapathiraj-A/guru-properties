@@ -57,8 +57,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
+import com.example.guruproperties.data.model.Tenant
 import com.example.guruproperties.ui.dialogs.AddEditCollectionDialog
 import com.example.guruproperties.ui.dialogs.AddEditHouseDialog
+import com.example.guruproperties.ui.dialogs.AddEditTenantDialog
 import com.example.guruproperties.ui.dialogs.AddEditUserDialog
 import com.example.guruproperties.ui.viewmodel.MainViewModel
 
@@ -67,7 +69,8 @@ private const val APK_URL = "https://github.com/Ganapathiraj-A/guru-properties/r
 enum class CurrentView {
     MAIN,
     SETTINGS,
-    USER_MANAGEMENT
+    USER_MANAGEMENT,
+    TENANT_MANAGEMENT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,6 +96,7 @@ fun MainScreen(
     val houses by viewModel.houses.collectAsState()
     val collections by viewModel.collections.collectAsState()
     val users by viewModel.users.collectAsState()
+    val tenants by viewModel.tenants.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     var editingHouse by remember { mutableStateOf<House?>(null) }
@@ -104,12 +108,16 @@ fun MainScreen(
     var editingUser by remember { mutableStateOf<AppUser?>(null) }
     var showAddUserDialog by remember { mutableStateOf(false) }
 
+    var editingTenant by remember { mutableStateOf<Tenant?>(null) }
+    var showAddTenantDialog by remember { mutableStateOf(false) }
+
     when (currentView) {
         CurrentView.SETTINGS -> {
             SettingsScreen(
                 currentUser = currentUser,
                 onBack = { currentView = CurrentView.MAIN },
                 onNavigateToUserManagement = { currentView = CurrentView.USER_MANAGEMENT },
+                onNavigateToTenantManagement = { currentView = CurrentView.TENANT_MANAGEMENT },
                 onSignOut = {
                     viewModel.signOut()
                     currentView = CurrentView.MAIN
@@ -130,6 +138,23 @@ fun MainScreen(
                 },
                 onDeleteUser = { docId ->
                     viewModel.deleteUser(docId)
+                }
+            )
+        }
+        CurrentView.TENANT_MANAGEMENT -> {
+            TenantManagementScreen(
+                tenants = tenants,
+                onBack = { currentView = CurrentView.SETTINGS },
+                onAddTenant = {
+                    editingTenant = null
+                    showAddTenantDialog = true
+                },
+                onEditTenant = { tenant ->
+                    editingTenant = tenant
+                    showAddTenantDialog = true
+                },
+                onDeleteTenant = { docId ->
+                    viewModel.deleteTenant(docId)
                 }
             )
         }
@@ -336,6 +361,7 @@ fun MainScreen(
         AddEditCollectionDialog(
             collection = editingCollection,
             availableHouses = houses,
+            availableTenants = tenants,
             onDismiss = { showAddCollectionDialog = false },
             onSave = { collection ->
                 viewModel.saveCollection(collection)
@@ -351,6 +377,17 @@ fun MainScreen(
             onSave = { user ->
                 viewModel.saveUser(user)
                 showAddUserDialog = false
+            }
+        )
+    }
+
+    if (showAddTenantDialog) {
+        AddEditTenantDialog(
+            tenant = editingTenant,
+            onDismiss = { showAddTenantDialog = false },
+            onSave = { tenant ->
+                viewModel.saveTenant(tenant)
+                showAddTenantDialog = false
             }
         )
     }

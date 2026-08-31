@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
+import com.example.guruproperties.data.model.Tenant
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -74,7 +75,29 @@ class PropertyRepository {
         )
     )
 
-    // Local in-memory state for fallback/offline demo
+    // Local Tenants List
+    private val localTenants = MutableStateFlow<List<Tenant>>(
+        listOf(
+            Tenant(
+                docId = "t1",
+                tenantId = "T101",
+                tenantName = "Rajesh Kumar",
+                phoneNumber = "9876543210",
+                houseId = "H101",
+                addedAt = "2025-01-15"
+            ),
+            Tenant(
+                docId = "t2",
+                tenantId = "T102",
+                tenantName = "Anita Sharma",
+                phoneNumber = "9123456789",
+                houseId = "H102",
+                addedAt = "2024-06-01"
+            )
+        )
+    )
+
+    // Local in-memory state for houses
     private val localHouses = MutableStateFlow<List<House>>(
         listOf(
             House(
@@ -232,6 +255,84 @@ class PropertyRepository {
         localUsers.value = localUsers.value.filterNot { it.docId == docId }
     }
 
+    // Tenant Management
+    fun getTenantsFlow(): Flow<List<Tenant>> = callbackFlow {
+        val firestore = db
+        if (firestore == null) {
+            val job = launch {
+                localTenants.collect { trySend(it) }
+            }
+            awaitClose { job.cancel() }
+        } else {
+            val listener = firestore.collection("tenants")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("PropertyRepository", "Firestore tenants listener error", error)
+                        trySend(localTenants.value)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val tenants = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(Tenant::class.java)?.copy(docId = doc.id)
+                        }
+                        if (tenants.isNotEmpty()) {
+                            localTenants.value = tenants
+                        }
+                        trySend(localTenants.value)
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    suspend fun saveTenant(tenant: Tenant) {
+        val firestore = db
+        if (firestore != null) {
+            try {
+                if (tenant.docId.isBlank()) {
+                    firestore.collection("tenants").add(tenant)
+                } else {
+                    firestore.collection("tenants").document(tenant.docId).set(tenant)
+                }
+            } catch (e: Exception) {
+                Log.e("PropertyRepository", "Error saving tenant to Firestore", e)
+                saveTenantLocally(tenant)
+            }
+        } else {
+            saveTenantLocally(tenant)
+        }
+    }
+
+    private fun saveTenantLocally(tenant: Tenant) {
+        val currentList = localTenants.value.toMutableList()
+        val index = currentList.indexOfFirst { it.docId == tenant.docId || (it.tenantName.equals(tenant.tenantName, ignoreCase = true) && tenant.tenantName.isNotBlank()) }
+        val formattedDate = if (tenant.addedAt.isBlank()) SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) else tenant.addedAt
+        if (index >= 0) {
+            currentList[index] = tenant.copy(addedAt = formattedDate)
+        } else {
+            val nextId = "T${100 + currentList.size + 1}"
+            val newTenant = tenant.copy(
+                docId = if (tenant.docId.isBlank()) "t_${System.currentTimeMillis()}" else tenant.docId,
+                tenantId = if (tenant.tenantId.isBlank()) nextId else tenant.tenantId,
+                addedAt = formattedDate
+            )
+            currentList.add(newTenant)
+        }
+        localTenants.value = currentList
+    }
+
+    suspend fun deleteTenant(docId: String) {
+        val firestore = db
+        if (firestore != null) {
+            try {
+                firestore.collection("tenants").document(docId).delete()
+            } catch (e: Exception) {
+                Log.e("PropertyRepository", "Error deleting tenant", e)
+            }
+        }
+        localTenants.value = localTenants.value.filterNot { it.docId == docId }
+    }
+
     fun getHousesFlow(): Flow<List<House>> = callbackFlow {
         val firestore = db
         if (firestore == null) {
@@ -324,6 +425,21 @@ class PropertyRepository {
             currentList.add(newHouse)
         }
         localHouses.value = currentList
+
+        // Auto-add tenant to tenant list if not present
+        if (house.tenantName.isNotBlank()) {
+            val existingTenants = localTenants.value
+            if (!existingTenants.any { it.tenantName.equals(house.tenantName, ignoreCase = true) }) {
+                saveTenantLocally(
+                    Tenant(
+                        tenantId = "T${100 + existingTenants.size + 1}",
+                        tenantName = house.tenantName,
+                        phoneNumber = house.phoneNumber,
+                        houseId = house.houseId
+                    )
+                )
+            }
+        }
     }
 
     suspend fun deleteHouse(docId: String) {
@@ -375,6 +491,20 @@ class PropertyRepository {
             currentList.add(newColl)
         }
         localCollections.value = currentList
+
+        // Auto-add paidBy as a tenant if not present
+        if (collection.paidBy.isNotBlank()) {
+            val existingTenants = localTenants.value
+            if (!existingTenants.any { it.tenantName.equals(collection.paidBy, ignoreCase = true) }) {
+                saveTenantLocally(
+                    Tenant(
+                        tenantId = "T${100 + existingTenants.size + 1}",
+                        tenantName = collection.paidBy,
+                        houseId = collection.houseId
+                    )
+                )
+            }
+        }
     }
 
     suspend fun deleteCollection(docId: String) {
