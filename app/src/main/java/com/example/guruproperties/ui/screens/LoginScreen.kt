@@ -29,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,14 +70,6 @@ fun LoginScreen(
         }
     }
 
-    // Auto-check last signed-in Google account on device
-    LaunchedEffect(Unit) {
-        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
-        if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
-            processLogin(lastAccount.email!!, lastAccount.displayName ?: "Google User")
-        }
-    }
-
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -86,15 +77,28 @@ fun LoginScreen(
         try {
             val account = task.getResult(ApiException::class.java)
             val email = account?.email ?: ""
-            val name = account?.displayName ?: "Google User"
+            val name = account?.displayName ?: account?.givenName ?: "Google User"
+            Log.d("LoginScreen", "Google Sign-In Account Selected: $email ($name)")
+            
             if (email.isNotBlank()) {
                 processLogin(email, name)
             } else {
                 errorMessage = "Unable to retrieve Google email address. Please try signing in again."
             }
+        } catch (e: ApiException) {
+            Log.e("LoginScreen", "Google Sign-In API Exception code: ${e.statusCode}", e)
+            // Try extracting last account if intent result status was OK
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
+                val email = lastAccount.email!!
+                val name = lastAccount.displayName ?: "Google User"
+                processLogin(email, name)
+            } else {
+                errorMessage = "Google Sign-In failed or was cancelled (Code ${e.statusCode}). Please select an account."
+            }
         } catch (e: Exception) {
-            Log.e("LoginScreen", "Google Sign-In API exception: ${e.message}", e)
-            errorMessage = "Google Sign-In failed or was cancelled. Please try again."
+            Log.e("LoginScreen", "Google Sign-In Exception", e)
+            errorMessage = "Google Sign-In failed. Please try again."
         }
     }
 
@@ -177,11 +181,14 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             errorMessage = null
-                            try {
-                                launcher.launch(googleSignInClient.signInIntent)
-                            } catch (e: Exception) {
-                                Log.e("LoginScreen", "Failed to launch Google Sign In Intent", e)
-                                errorMessage = "Unable to launch Google Sign-In on this device."
+                            // Clear cached Google Account so account picker is always presented to user
+                            googleSignInClient.signOut().addOnCompleteListener {
+                                try {
+                                    launcher.launch(googleSignInClient.signInIntent)
+                                } catch (e: Exception) {
+                                    Log.e("LoginScreen", "Failed to launch Google Sign In Intent", e)
+                                    errorMessage = "Unable to launch Google Sign-In on this device."
+                                }
                             }
                         },
                         modifier = Modifier
