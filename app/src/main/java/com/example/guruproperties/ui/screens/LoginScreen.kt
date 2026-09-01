@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Lock
@@ -27,8 +26,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,8 +51,6 @@ fun LoginScreen(
     onLoginAttempt: (email: String, name: String) -> Result<AppUser>
 ) {
     val context = LocalContext.current
-    var emailInput by remember { mutableStateOf("") }
-    var nameInput by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val gso = remember {
@@ -95,13 +90,11 @@ fun LoginScreen(
             if (email.isNotBlank()) {
                 processLogin(email, name)
             } else {
-                val fallback = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
-                processLogin(fallback, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
+                errorMessage = "Unable to retrieve Google email address. Please try signing in again."
             }
         } catch (e: Exception) {
             Log.e("LoginScreen", "Google Sign-In API exception: ${e.message}", e)
-            val fallbackEmail = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
-            processLogin(fallbackEmail, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
+            errorMessage = "Google Sign-In failed or was cancelled. Please try again."
         }
     }
 
@@ -152,7 +145,7 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Error Alert Banner if user is unauthorized
+                    // Error Alert Banner if user is unauthorized or Google Sign In fails
                     if (errorMessage != null) {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
@@ -180,7 +173,7 @@ fun LoginScreen(
 
                     HorizontalDivider()
 
-                    // Primary Google Single Sign On Launch Button
+                    // Official Google Single Sign On Button
                     Button(
                         onClick = {
                             errorMessage = null
@@ -188,8 +181,7 @@ fun LoginScreen(
                                 launcher.launch(googleSignInClient.signInIntent)
                             } catch (e: Exception) {
                                 Log.e("LoginScreen", "Failed to launch Google Sign In Intent", e)
-                                val email = if (emailInput.isNotBlank()) emailInput else "ganapathiraj@gmail.com"
-                                processLogin(email, if (nameInput.isNotBlank()) nameInput else "Ganapathiraj")
+                                errorMessage = "Unable to launch Google Sign-In on this device."
                             }
                         },
                         modifier = Modifier
@@ -210,39 +202,6 @@ fun LoginScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                    }
-
-                    Text(
-                        text = "Or enter authorized email address:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    OutlinedTextField(
-                        value = emailInput,
-                        onValueChange = { emailInput = it },
-                        label = { Text("Authorized Email Address") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedButton(
-                        onClick = {
-                            if (emailInput.isBlank()) {
-                                errorMessage = "Please enter your email address to verify authorization."
-                            } else {
-                                processLogin(emailInput, if (nameInput.isNotBlank()) nameInput else "User")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text("Verify & Access Workspace")
                     }
                 }
             }
