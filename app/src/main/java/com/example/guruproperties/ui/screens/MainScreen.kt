@@ -302,6 +302,7 @@ fun MainScreen(
     if (showAddHouseDialog) {
         AddEditHouseDialog(
             house = editingHouse,
+            availableTenants = tenants,
             onDismiss = { showAddHouseDialog = false },
             onSave = { house ->
                 viewModel.saveHouse(house)

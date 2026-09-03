@@ -15,9 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,12 +37,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.House
+import com.example.guruproperties.data.model.Tenant
 import java.util.Calendar
 import java.util.Locale
 
 @Composable
 fun AddEditHouseDialog(
     house: House?,
+    availableTenants: List<Tenant> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (House) -> Unit
 ) {
@@ -53,6 +58,12 @@ fun AddEditHouseDialog(
     var tenancyDate by remember { mutableStateOf(house?.tenancyDate ?: "") }
     var tenantName by remember { mutableStateOf(house?.tenantName ?: "") }
     var phoneNumber by remember { mutableStateOf(house?.phoneNumber ?: "") }
+
+    var isTenantDropdownExpanded by remember { mutableStateOf(false) }
+
+    val tenantOptions = remember(availableTenants) {
+        availableTenants.map { it.tenantName }.filter { it.isNotBlank() }.distinct()
+    }
 
     val scrollState = rememberScrollState()
 
@@ -179,13 +190,44 @@ fun AddEditHouseDialog(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = tenantName,
-                        onValueChange = { tenantName = it },
-                        label = { Text("Tenant Name") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
+                    
+                    // Selectable Tenant Name Dropdown
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = tenantName,
+                            onValueChange = { tenantName = it },
+                            label = { Text("Tenant Name") },
+                            trailingIcon = {
+                                IconButton(onClick = { isTenantDropdownExpanded = !isTenantDropdownExpanded }) {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Tenant")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isTenantDropdownExpanded = true },
+                            singleLine = true
+                        )
+                        if (tenantOptions.isNotEmpty()) {
+                            DropdownMenu(
+                                expanded = isTenantDropdownExpanded,
+                                onDismissRequest = { isTenantDropdownExpanded = false }
+                            ) {
+                                tenantOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            tenantName = option
+                                            val matchedTenant = availableTenants.find { it.tenantName.equals(option, ignoreCase = true) }
+                                            if (matchedTenant != null && matchedTenant.phoneNumber.isNotBlank() && phoneNumber.isBlank()) {
+                                                phoneNumber = matchedTenant.phoneNumber
+                                            }
+                                            isTenantDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 OutlinedTextField(
