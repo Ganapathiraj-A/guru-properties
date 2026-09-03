@@ -1,5 +1,6 @@
 package com.example.guruproperties.ui.dialogs
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,7 @@ fun AddEditCollectionDialog(
     onDismiss: () -> Unit,
     onSave: (RentCollection) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var houseId by remember { mutableStateOf(collection?.houseId ?: if (availableHouses.isNotEmpty()) availableHouses.first().houseId else "") }
     var pendingAmt by remember { mutableStateOf(collection?.pendingAmt?.let { if (it == 0.0) "" else it.toString() } ?: "") }
     var paidAmt by remember { mutableStateOf(collection?.paidAmt?.let { if (it == 0.0) "" else it.toString() } ?: "") }
@@ -276,6 +278,17 @@ fun AddEditCollectionDialog(
                         onDismissRequest = { isDateDropdownExpanded = false },
                         modifier = Modifier.fillMaxWidth(0.85f)
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("📅 Open Calendar DatePicker...") },
+                            onClick = {
+                                isDateDropdownExpanded = false
+                                val cal = Calendar.getInstance()
+                                DatePickerDialog(context, { _, y, m, d ->
+                                    val timePart = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
+                                    paidDT = String.format(Locale.getDefault(), "%04d-%02d-%02d %s", y, m + 1, d, timePart)
+                                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                            }
+                        )
                         dateOptions.forEach { (label, valStr) ->
                             DropdownMenuItem(
                                 text = { Text(label) },

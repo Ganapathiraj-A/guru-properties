@@ -1,6 +1,9 @@
 package com.example.guruproperties.ui.dialogs
 
+import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,8 +14,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -23,9 +30,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.House
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun AddEditHouseDialog(
@@ -33,6 +43,7 @@ fun AddEditHouseDialog(
     onDismiss: () -> Unit,
     onSave: (House) -> Unit
 ) {
+    val context = LocalContext.current
     var houseName by remember { mutableStateOf(house?.houseName ?: "") }
     var location by remember { mutableStateOf(house?.location ?: "") }
     var monthlyRent by remember { mutableStateOf(house?.monthlyRent?.let { if (it == 0.0) "" else it.toString() } ?: "") }
@@ -44,6 +55,27 @@ fun AddEditHouseDialog(
     var phoneNumber by remember { mutableStateOf(house?.phoneNumber ?: "") }
 
     val scrollState = rememberScrollState()
+
+    fun openDatePicker(initialDate: String, onSelected: (String) -> Unit) {
+        val cal = Calendar.getInstance()
+        var y = cal.get(Calendar.YEAR)
+        var m = cal.get(Calendar.MONTH)
+        var d = cal.get(Calendar.DAY_OF_MONTH)
+
+        if (initialDate.isNotBlank() && initialDate.contains("-")) {
+            val parts = initialDate.split("-")
+            if (parts.size >= 3) {
+                y = parts[0].toIntOrNull() ?: y
+                m = (parts[1].toIntOrNull() ?: (m + 1)) - 1
+                d = parts[2].substringBefore(" ").toIntOrNull() ?: d
+            }
+        }
+
+        DatePickerDialog(context, { _, year, monthOfYear, dayOfMonth ->
+            val formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, monthOfYear + 1, dayOfMonth)
+            onSelected(formatted)
+        }, y, m, d).show()
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -106,25 +138,46 @@ fun AddEditHouseDialog(
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = revisionDate,
-                        onValueChange = { revisionDate = it },
-                        label = { Text("Revision Date") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
+                    
+                    // Choosable Revision Date Picker
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = revisionDate,
+                            onValueChange = { revisionDate = it },
+                            label = { Text("Revision Date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            trailingIcon = {
+                                IconButton(onClick = { openDatePicker(revisionDate) { revisionDate = it } }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { openDatePicker(revisionDate) { revisionDate = it } },
+                            singleLine = true
+                        )
+                    }
                 }
 
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = tenancyDate,
-                        onValueChange = { tenancyDate = it },
-                        label = { Text("Tenancy Date") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
+                    // Choosable Tenancy Date Picker
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = tenancyDate,
+                            onValueChange = { tenancyDate = it },
+                            label = { Text("Tenancy Date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            trailingIcon = {
+                                IconButton(onClick = { openDatePicker(tenancyDate) { tenancyDate = it } }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { openDatePicker(tenancyDate) { tenancyDate = it } },
+                            singleLine = true
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = tenantName,
