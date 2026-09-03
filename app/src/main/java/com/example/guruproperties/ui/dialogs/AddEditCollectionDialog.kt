@@ -124,21 +124,21 @@ fun AddEditCollectionDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // 1. House ID Selection Dropdown
+                // 1. Property Name Selection Dropdown
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = houseId,
                         onValueChange = {
                             houseId = it
-                            val matched = availableHouses.find { h -> h.houseId.equals(it, ignoreCase = true) }
+                            val matched = availableHouses.find { h -> h.houseName.equals(it, ignoreCase = true) || h.houseId.equals(it, ignoreCase = true) }
                             if (matched != null) {
                                 paidBy = matched.tenantName
                             }
                         },
-                        label = { Text("HouseID (e.g. H101)") },
+                        label = { Text("Property Name (e.g. Salem House)") },
                         trailingIcon = {
                             IconButton(onClick = { isHouseDropdownExpanded = !isHouseDropdownExpanded }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select House")
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Property")
                             }
                         },
                         modifier = Modifier
@@ -153,9 +153,9 @@ fun AddEditCollectionDialog(
                     ) {
                         availableHouses.forEach { houseItem ->
                             DropdownMenuItem(
-                                text = { Text("${houseItem.houseId} - ${houseItem.houseName} (${houseItem.tenantName})") },
+                                text = { Text(if (houseItem.tenantName.isNotBlank()) "${houseItem.houseName} (${houseItem.tenantName})" else houseItem.houseName) },
                                 onClick = {
-                                    houseId = houseItem.houseId
+                                    houseId = houseItem.houseName
                                     paidBy = houseItem.tenantName
                                     val rent = houseItem.monthlyRent
                                     if (paidAmt.isBlank() && rent > 0) {

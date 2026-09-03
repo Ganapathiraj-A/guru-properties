@@ -33,7 +33,6 @@ fun AddEditHouseDialog(
     onDismiss: () -> Unit,
     onSave: (House) -> Unit
 ) {
-    var houseId by remember { mutableStateOf(house?.houseId ?: "") }
     var houseName by remember { mutableStateOf(house?.houseName ?: "") }
     var location by remember { mutableStateOf(house?.location ?: "") }
     var monthlyRent by remember { mutableStateOf(house?.monthlyRent?.let { if (it == 0.0) "" else it.toString() } ?: "") }
@@ -54,7 +53,6 @@ fun AddEditHouseDialog(
                 style = MaterialTheme.typography.titleLarge
             )
         },
-
         text = {
             Column(
                 modifier = Modifier
@@ -62,23 +60,13 @@ fun AddEditHouseDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = houseId,
-                        onValueChange = { houseId = it },
-                        label = { Text("HouseID (e.g. H101)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = houseName,
-                        onValueChange = { houseName = it },
-                        label = { Text("House Name") },
-                        modifier = Modifier.weight(1.5f),
-                        singleLine = true
-                    )
-                }
+                OutlinedTextField(
+                    value = houseName,
+                    onValueChange = { houseName = it },
+                    label = { Text("House Name (e.g. Salem House)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
                 OutlinedTextField(
                     value = location,
@@ -160,10 +148,11 @@ fun AddEditHouseDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (houseId.isNotBlank() && houseName.isNotBlank()) {
+                    if (houseName.isNotBlank()) {
+                        val nameClean = houseName.trim()
                         val updated = (house ?: House()).copy(
-                            houseId = houseId.trim(),
-                            houseName = houseName.trim(),
+                            houseId = nameClean,
+                            houseName = nameClean,
                             location = location.trim(),
                             monthlyRent = monthlyRent.toDoubleOrNull() ?: 0.0,
                             advance = advance.toDoubleOrNull() ?: 0.0,
