@@ -961,25 +961,110 @@
       document.getElementById('login-overlay').style.display = 'flex';
     });
 
+    const defaultHouses = [
+      {
+        sNo: 1,
+        houseId: "Guru Villa 1A",
+        houseName: "Guru Villa 1A",
+        location: "Main Road, Sector 4",
+        monthlyRent: 15000.0,
+        advance: 50000.0,
+        monthlyRentRevision: 16500.0,
+        revisionDate: "2026-12-01",
+        tenancyDate: "2025-01-15",
+        tenantName: "Rajesh Kumar",
+        phoneNumber: "9876543210"
+      },
+      {
+        sNo: 2,
+        houseId: "Guru Residency 2B",
+        houseName: "Guru Residency 2B",
+        location: "Lake View, Phase 2",
+        monthlyRent: 22000.0,
+        advance: 70000.0,
+        monthlyRentRevision: 24000.0,
+        revisionDate: "2027-03-01",
+        tenancyDate: "2024-06-01",
+        tenantName: "Anita Sharma",
+        phoneNumber: "9123456789"
+      }
+    ];
+
+    const defaultCollections = [
+      {
+        sNo: 1,
+        houseId: "Guru Villa 1A",
+        pendingAmt: 0.0,
+        paidAmt: 15000.0,
+        paidDT: "2026-08-05 10:30 AM",
+        paidBy: "Rajesh Kumar",
+        paidThru: "UPI"
+      },
+      {
+        sNo: 2,
+        houseId: "Guru Residency 2B",
+        pendingAmt: 2000.0,
+        paidAmt: 20000.0,
+        paidDT: "2026-08-02 04:15 PM",
+        paidBy: "Anita Sharma",
+        paidThru: "Bank Transfer"
+      }
+    ];
+
+    const defaultTenants = [
+      { tenantId: "T101", tenantName: "Rajesh Kumar", phoneNumber: "9876543210", houseId: "Guru Villa 1A", addedAt: "2025-01-15" },
+      { tenantId: "T102", tenantName: "Anita Sharma", phoneNumber: "9123456789", houseId: "Guru Residency 2B", addedAt: "2024-06-01" }
+    ];
+
     // Firestore Realtime Listeners
     function setupFirestoreListeners() {
       db.collection('houses').onSnapshot(snapshot => {
-        houses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        if (snapshot && !snapshot.empty) {
+          houses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        } else {
+          houses = defaultHouses;
+          // Seed to Cloud Firestore
+          defaultHouses.forEach(h => db.collection('houses').add(h));
+        }
+        render();
+      }, err => {
+        console.warn("Houses listener error:", err);
+        houses = defaultHouses;
         render();
       });
 
       db.collection('collections').onSnapshot(snapshot => {
-        collections = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        if (snapshot && !snapshot.empty) {
+          collections = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        } else {
+          collections = defaultCollections;
+          // Seed to Cloud Firestore
+          defaultCollections.forEach(c => db.collection('collections').add(c));
+        }
+        render();
+      }, err => {
+        console.warn("Collections listener error:", err);
+        collections = defaultCollections;
         render();
       });
 
       db.collection('tenants').onSnapshot(snapshot => {
-        tenants = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        if (snapshot && !snapshot.empty) {
+          tenants = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        } else {
+          tenants = defaultTenants;
+          defaultTenants.forEach(t => db.collection('tenants').add(t));
+        }
+        render();
+      }, err => {
+        tenants = defaultTenants;
         render();
       });
 
       db.collection('app_users').onSnapshot(snapshot => {
-        users = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        if (snapshot && !snapshot.empty) {
+          users = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        }
         render();
       });
     }
