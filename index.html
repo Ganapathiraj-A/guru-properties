@@ -845,11 +845,71 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // Default Initial Sample Data
+    const defaultHouses = [
+      {
+        docId: "h1",
+        sNo: 1,
+        houseId: "Guru Villa 1A",
+        houseName: "Guru Villa 1A",
+        location: "Main Road, Sector 4",
+        monthlyRent: 15000.0,
+        advance: 50000.0,
+        monthlyRentRevision: 16500.0,
+        revisionDate: "2026-12-01",
+        tenancyDate: "2025-01-15",
+        tenantName: "Rajesh Kumar",
+        phoneNumber: "9876543210"
+      },
+      {
+        docId: "h2",
+        sNo: 2,
+        houseId: "Guru Residency 2B",
+        houseName: "Guru Residency 2B",
+        location: "Lake View, Phase 2",
+        monthlyRent: 22000.0,
+        advance: 70000.0,
+        monthlyRentRevision: 24000.0,
+        revisionDate: "2027-03-01",
+        tenancyDate: "2024-06-01",
+        tenantName: "Anita Sharma",
+        phoneNumber: "9123456789"
+      }
+    ];
+
+    const defaultCollections = [
+      {
+        docId: "c1",
+        sNo: 1,
+        houseId: "Guru Villa 1A",
+        pendingAmt: 0.0,
+        paidAmt: 15000.0,
+        paidDT: "2026-08-05 10:30 AM",
+        paidBy: "Rajesh Kumar",
+        paidThru: "UPI"
+      },
+      {
+        docId: "c2",
+        sNo: 2,
+        houseId: "Guru Residency 2B",
+        pendingAmt: 2000.0,
+        paidAmt: 20000.0,
+        paidDT: "2026-08-02 04:15 PM",
+        paidBy: "Anita Sharma",
+        paidThru: "Bank Transfer"
+      }
+    ];
+
+    const defaultTenants = [
+      { docId: "t1", tenantId: "T101", tenantName: "Rajesh Kumar", phoneNumber: "9876543210", houseId: "Guru Villa 1A", addedAt: "2025-01-15" },
+      { docId: "t2", tenantId: "T102", tenantName: "Anita Sharma", phoneNumber: "9123456789", houseId: "Guru Residency 2B", addedAt: "2024-06-01" }
+    ];
+
     // App State
     let currentUser = { email: 'gururajan.jayamani@gmail.com', name: 'Gururajan Jayamani' };
-    let houses = [];
-    let collections = [];
-    let tenants = [];
+    let houses = [...defaultHouses];
+    let collections = [...defaultCollections];
+    let tenants = [...defaultTenants];
     let users = [];
     let currentTab = 'rent';
     let searchQuery = '';
