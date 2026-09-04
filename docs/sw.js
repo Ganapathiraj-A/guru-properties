@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guru-properties-v1';
+const CACHE_NAME = 'guru-properties-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -29,11 +29,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests for same origin or static assets
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => caches.match('./index.html'));
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
