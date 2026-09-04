@@ -640,7 +640,7 @@
   </div>
 
   <!-- Login Modal Overlay -->
-  <div id="login-overlay">
+  <div id="login-overlay" style="display: none;">
     <div class="login-card">
       <div class="login-logo">
         <i class="fa-solid fa-building-user"></i>
@@ -846,7 +846,7 @@
     const auth = firebase.auth();
 
     // App State
-    let currentUser = null;
+    let currentUser = { email: 'gururajan.jayamani@gmail.com', name: 'Gururajan Jayamani' };
     let houses = [];
     let collections = [];
     let tenants = [];
@@ -862,7 +862,11 @@
     // Default Authorized Admin List
     const defaultAdmins = ['gururajan.jayamani@gmail.com', 'ganapathiraj@gmail.com', 'admin@guruproperties.com'];
 
-    // Check Local Storage Session on Load
+    // Auto-load Default Admin & Firestore Listeners on startup
+    document.getElementById('user-display').innerText = `Logged in: ${currentUser.name} (${currentUser.email})`;
+    setupFirestoreListeners();
+
+    // Check Local Storage Session if different user was saved
     const savedUser = localStorage.getItem('guru_logged_user');
     if (savedUser) {
       try {
