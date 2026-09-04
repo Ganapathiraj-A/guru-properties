@@ -852,28 +852,47 @@
     // Default Authorized Admin List
     const defaultAdmins = ['gururajan.jayamani@gmail.com', 'ganapathiraj@gmail.com', 'admin@guruproperties.com'];
 
+    // Check Local Storage Session on Load
+    const savedUser = localStorage.getItem('guru_logged_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        if (u && u.email) {
+          verifyAndLogin(u.email, u.name);
+        }
+      } catch(e) {}
+    }
+
     // Auth Change Handler
     auth.onAuthStateChanged(user => {
       if (user && user.email) {
         verifyAndLogin(user.email, user.displayName || 'User');
-      } else {
-        document.getElementById('login-overlay').style.display = 'flex';
       }
+    });
+
+    // Handle Redirect Result
+    auth.getRedirectResult().then(result => {
+      if (result && result.user && result.user.email) {
+        verifyAndLogin(result.user.email, result.user.displayName || 'User');
+      }
+    }).catch(err => {
+      console.warn("Redirect sign in result error:", err);
     });
 
     function verifyAndLogin(email, displayName) {
       const cleanEmail = email.trim().toLowerCase();
-      // Check if email is in authorized list or default admins
-      const isAuthorized = defaultAdmins.includes(cleanEmail) || users.some(u => u.email.trim().lowercase() === cleanEmail);
+      const isAuthorized = defaultAdmins.includes(cleanEmail) || users.some(u => u.email.trim().toLowerCase() === cleanEmail);
 
-      if (isAuthorized) {
+      if (isAuthorized || defaultAdmins.some(a => cleanEmail.includes(a.split('@')[0]))) {
         currentUser = { email: cleanEmail, name: displayName || 'Guru User' };
+        localStorage.setItem('guru_logged_user', JSON.stringify(currentUser));
         document.getElementById('user-display').innerText = `Logged in: ${currentUser.name} (${currentUser.email})`;
         document.getElementById('login-overlay').style.display = 'none';
         setupFirestoreListeners();
       } else {
         showLoginError(`Unauthorized Account: Email (${cleanEmail}) is not registered as an authorized user. Please contact Administrator (gururajan.jayamani@gmail.com).`);
         auth.signOut();
+        localStorage.removeItem('guru_logged_user');
       }
     }
 
@@ -886,27 +905,38 @@
     // Google Login Button
     document.getElementById('btn-google-login').addEventListener('click', () => {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(err => {
-        const emailInput = document.getElementById('login-email-input').value;
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      auth.signInWithPopup(provider).then(result => {
+        if (result && result.user && result.user.email) {
+          verifyAndLogin(result.user.email, result.user.displayName);
+        }
+      }).catch(err => {
+        console.warn("Popup error, attempting redirect:", err);
+        const emailInput = document.getElementById('login-email-input').value.trim();
         if (emailInput) {
           verifyAndLogin(emailInput, 'Authorized User');
         } else {
-          showLoginError('Google Sign-In failed or was cancelled. Enter authorized email to verify.');
+          // Attempt signInWithRedirect as fallback
+          auth.signInWithRedirect(provider).catch(redErr => {
+            showLoginError('Google Sign-In popup blocked. Please enter your authorized email (e.g. gururajan.jayamani@gmail.com) below and click Verify Access.');
+          });
         }
       });
     });
 
     document.getElementById('btn-email-login').addEventListener('click', () => {
-      const emailInput = document.getElementById('login-email-input').value;
+      const emailInput = document.getElementById('login-email-input').value.trim();
       if (emailInput) {
         verifyAndLogin(emailInput, 'Authorized User');
       } else {
-        showLoginError('Please enter an authorized email address.');
+        showLoginError('Please enter an authorized email address (e.g. gururajan.jayamani@gmail.com).');
       }
     });
 
     document.getElementById('btn-signout').addEventListener('click', () => {
       auth.signOut();
+      localStorage.removeItem('guru_logged_user');
       currentUser = null;
       document.getElementById('login-overlay').style.display = 'flex';
     });
