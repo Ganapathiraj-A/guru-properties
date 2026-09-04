@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Guru Properties - Rent & Property Cloud Workspace</title>
+  
+  <!-- PWA & iOS Meta Tags -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#2196F3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Guru Properties">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+
+  <!-- Inter Font & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Firebase Web SDK (v9/v10 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #2196F3;
+      --primary-dark: #1976D2;
+      --primary-container: #E1F5FE;
+      --on-primary-container: #0277BD;
+      --secondary: #009688;
+      --secondary-container: #E0F2F1;
+      --on-secondary-container: #00695C;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-variant: #F1F5F9;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --danger: #EF4444;
+      --danger-container: #FEE2E2;
+      --radius: 16px;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* App Container */
+    #app {
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      background-color: var(--surface);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+
+    .cloud-icon {
+      color: var(--primary);
+      font-size: 0.95rem;
+    }
+
+    .user-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .icon-btn:active {
+      background: var(--surface-variant);
+    }
+
+    .icon-btn.danger {
+      color: var(--danger);
+    }
+
+    /* Search Bar */
+    .search-container {
+      padding: 10px 16px 6px;
+    }
+
+    .search-box {
+      background: var(--surface-variant);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      height: 44px;
+    }
+
+    .search-box i {
+      color: var(--text-muted);
+      margin-right: 10px;
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      width: 100%;
+      height: 100%;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      background: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Content Area */
+    main {
+      flex: 1;
+      padding: 16px;
+      padding-bottom: 80px;
+    }
+
+    /* Summary Card */
+    .summary-card {
+      background: var(--primary-container);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      color: var(--on-primary-container);
+    }
+
+    .summary-item label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      opacity: 0.8;
+      display: block;
+    }
+
+    .summary-item .amount {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .summary-item.pending .amount {
+      color: var(--danger);
+    }
+
+    /* Cards List */
+    .cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.1s, border-color 0.2s;
+    }
+
+    .item-card:active {
+      transform: scale(0.99);
+      border-color: var(--primary);
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .badge.secondary {
+      background: var(--secondary-container);
+      color: var(--on-secondary-container);
+    }
+
+    .card-name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .card-amount {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+
+    /* Floating Action Button */
+    .fab {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      right: calc(50% - 270px + 16px);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 1.4rem;
+      box-shadow: 0 8px 24px rgba(33, 150, 243, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 40;
+    }
+
+    @media (max-width: 600px) {
+      .fab {
+        right: 20px;
+      }
+    }
+
+    /* Modal / Dialog Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      transform: translateY(20px);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.open .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      background: var(--surface);
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--surface-variant);
+      color: var(--text-main);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* PWA Install Banner Card */
+    .pwa-banner {
+      background: linear-gradient(135deg, #0288D1, #2196F3);
+      color: white;
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+    }
+
+    .pwa-banner h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .pwa-banner p {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+
+    /* Login Screen Overlay */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-logo {
+      width: 64px;
+      height: 64px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+
+    /* Detail Modal Rows */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-row label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .detail-row val {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="top-bar">
+        <div>
+          <div class="brand-title">
+            Guru Properties <i class="fa-solid fa-cloud-arrow-up cloud-icon"></i>
+          </div>
+          <div class="user-subtitle" id="user-display">Logged in: Admin</div>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="btn-settings" title="Settings">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <button class="icon-btn danger" id="btn-signout" title="Sign Out">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search-input" placeholder="Search properties or rent records...">
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" id="tab-rent">
+        <i class="fa-solid fa-file-invoice-dollar"></i> Rent (<span id="rent-count">0</span>)
+      </button>
+      <button class="tab-btn" id="tab-properties">
+        <i class="fa-solid fa-city"></i> Properties (<span id="prop-count">0</span>)
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Rent Section -->
+      <div id="section-rent">
+        <div class="summary-card">
+          <div class="summary-item">
+            <label>Total Collected</label>
+            <div class="amount" id="total-collected">₹0</div>
+          </div>
+          <div class="summary-item pending">
+            <label>Total Pending</label>
+            <div class="amount" id="total-pending">₹0</div>
+          </div>
+        </div>
+        <div class="cards-list" id="rent-list"></div>
+      </div>
+
+      <!-- Properties Section -->
+      <div id="section-properties" style="display: none;">
+        <div class="cards-list" id="properties-list"></div>
+      </div>
+
+      <!-- Full-Screen Settings View -->
+      <div id="section-settings" style="display: none;">
+        <div class="pwa-banner">
+          <h4><i class="fa-brands fa-apple"></i> Install on iPhone (Safari PWA)</h4>
+          <p>Tap the <strong>Share <i class="fa-solid fa-arrow-up-from-bracket"></i></strong> button in Safari toolbar, then select <strong>Add to Home Screen <i class="fa-solid fa-plus-square"></i></strong> to install Guru Properties as an app!</p>
+        </div>
+
+        <div class="item-card" id="btn-manage-users" style="margin-bottom: 12px;">
+          <div class="card-title-group">
+            <div class="badge secondary"><i class="fa-solid fa-user-shield"></i></div>
+            <div>
+              <div class="card-name">Manage Authorized Users</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Add or remove app users sharing database access</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+        </div>
+
+        <div class="item-card" id="btn-manage-tenants" style="margin-bottom: 12px;">
+          <div class="card-title-group">
+            <div class="badge"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <div class="card-name">Manage Tenants</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Add or remove tenant names for Paid By dropdown</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+        </div>
+
+        <div class="item-card" style="margin-bottom: 12px; cursor: default;">
+          <div class="card-title-group">
+            <div class="badge"><i class="fa-solid fa-database"></i></div>
+            <div>
+              <div class="card-name">Cloud Database Status</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Real-time multi-user synchronization active</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-danger" id="btn-settings-back" style="margin-top: 20px; width: 100%;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Main Workspace
+        </button>
+      </div>
+    </main>
+
+    <!-- FAB -->
+    <button class="fab" id="fab-add" title="Add New Item">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+  </div>
+
+  <!-- Login Modal Overlay -->
+  <div id="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="fa-solid fa-building-user"></i>
+      </div>
+      <h2 style="font-weight: 700; margin-bottom: 4px;">Guru Properties</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Rent Collection & Property Management Workspace</p>
+
+      <div id="login-error" style="display: none; background: var(--danger-container); color: var(--danger); font-size: 0.8rem; padding: 10px; border-radius: 10px; margin-bottom: 16px; font-weight: 600;"></div>
+
+      <button class="btn btn-primary" id="btn-google-login" style="width: 100%; height: 50px; font-size: 1rem;">
+        <i class="fa-brands fa-google"></i> Sign In with Google
+      </button>
+
+      <div style="margin: 16px 0; font-size: 0.8rem; color: var(--text-muted);">or verify authorized email:</div>
+
+      <div class="form-group" style="text-align: left;">
+        <input type="email" id="login-email-input" class="form-control" placeholder="Authorized Email Address">
+      </div>
+
+      <button class="btn btn-secondary" id="btn-email-login" style="width: 100%;">
+        <i class="fa-solid fa-user-check"></i> Verify Access
+      </button>
+    </div>
+  </div>
+
+  <!-- Generic Detail Popup Modal -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="detail-title">Details</h3>
+        <button class="icon-btn" onclick="closeModal('modal-detail')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="detail-body"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" id="btn-detail-edit"><i class="fa-solid fa-pen"></i> Edit</button>
+        <button class="btn btn-danger" id="btn-detail-delete"><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Property Modal -->
+  <div class="modal-overlay" id="modal-property">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="prop-modal-title">Add Property</h3>
+        <button class="icon-btn" onclick="closeModal('modal-property')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-property">
+        <input type="hidden" id="prop-doc-id">
+        <div class="form-group">
+          <label>House Name (e.g. Salem House)</label>
+          <input type="text" id="prop-name" class="form-control" required placeholder="Property Name">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="prop-location" class="form-control" placeholder="Location">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monthly Rent (₹)</label>
+            <input type="number" id="prop-rent" class="form-control" placeholder="10000">
+          </div>
+          <div class="form-group">
+            <label>Advance (₹)</label>
+            <input type="number" id="prop-advance" class="form-control" placeholder="50000">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Rent Revision (₹)</label>
+            <input type="number" id="prop-revision" class="form-control" placeholder="11000">
+          </div>
+          <div class="form-group">
+            <label>Revision Date</label>
+            <input type="date" id="prop-rev-date" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tenancy Date</label>
+            <input type="date" id="prop-tenancy-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Tenant Name</label>
+            <select id="prop-tenant-name" class="form-control"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="prop-phone" class="form-control" placeholder="Phone Number">
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-property')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Property</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Rent Collection Modal -->
+  <div class="modal-overlay" id="modal-rent">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="rent-modal-title">Add Rent Collection</h3>
+        <button class="icon-btn" onclick="closeModal('modal-rent')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-rent">
+        <input type="hidden" id="rent-doc-id">
+        <div class="form-group">
+          <label>Property Name</label>
+          <select id="rent-prop-select" class="form-control" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Paid Amt (₹)</label>
+            <input type="number" id="rent-paid" class="form-control" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>Pending Amt (₹)</label>
+            <input type="number" id="rent-pending" class="form-control" placeholder="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Paid By</label>
+          <select id="rent-paid-by" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label>Paid Through (Payment Mode)</label>
+          <select id="rent-paid-thru" class="form-control">
+            <option value="UPI">UPI</option>
+            <option value="Cash">Cash</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Net Banking">Net Banking</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Paid Date & Time</label>
+          <input type="text" id="rent-dt" class="form-control" placeholder="YYYY-MM-DD hh:mm AM/PM">
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-rent')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Rent Log</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Administration Modal -->
+  <div class="modal-overlay" id="modal-users">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Authorized App Users</h3>
+        <button class="icon-btn" onclick="closeModal('modal-users')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="cards-list" id="users-list" style="margin-bottom: 16px;"></div>
+      <button class="btn btn-primary" id="btn-add-user" style="width: 100%;">
+        <i class="fa-solid fa-user-plus"></i> Add New Authorized User
+      </button>
+    </div>
+  </div>
+
+  <!-- Tenant Administration Modal -->
+  <div class="modal-overlay" id="modal-tenants">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Managed Tenants</h3>
+        <button class="icon-btn" onclick="closeModal('modal-tenants')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="cards-list" id="tenants-list" style="margin-bottom: 16px;"></div>
+      <button class="btn btn-primary" id="btn-add-tenant" style="width: 100%;">
+        <i class="fa-solid fa-user-plus"></i> Add New Tenant
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7OPe5GzDzRaOhlTCiXCz8A_OQ7RfFCDo",
+      authDomain: "guru-properties-app.firebaseapp.com",
+      projectId: "guru-properties-app",
+      storageBucket: "guru-properties-app.firebasestorage.app",
+      messagingSenderId: "499078938714",
+      appId: "1:499078938714:web:dddf611e9aececac60d863"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // App State
+    let currentUser = null;
+    let houses = [];
+    let collections = [];
+    let tenants = [];
+    let users = [];
+    let currentTab = 'rent';
+    let searchQuery = '';
+
+    // Register Service Worker for PWA Installation on iPhone/Safari
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration error:', err));
+    }
+
+    // Default Authorized Admin List
+    const defaultAdmins = ['gururajan.jayamani@gmail.com', 'ganapathiraj@gmail.com', 'admin@guruproperties.com'];
+
+    // Auth Change Handler
+    auth.onAuthStateChanged(user => {
+      if (user && user.email) {
+        verifyAndLogin(user.email, user.displayName || 'User');
+      } else {
+        document.getElementById('login-overlay').style.display = 'flex';
+      }
+    });
+
+    function verifyAndLogin(email, displayName) {
+      const cleanEmail = email.trim().toLowerCase();
+      // Check if email is in authorized list or default admins
+      const isAuthorized = defaultAdmins.includes(cleanEmail) || users.some(u => u.email.trim().lowercase() === cleanEmail);
+
+      if (isAuthorized) {
+        currentUser = { email: cleanEmail, name: displayName || 'Guru User' };
+        document.getElementById('user-display').innerText = `Logged in: ${currentUser.name} (${currentUser.email})`;
+        document.getElementById('login-overlay').style.display = 'none';
+        setupFirestoreListeners();
+      } else {
+        showLoginError(`Unauthorized Account: Email (${cleanEmail}) is not registered as an authorized user. Please contact Administrator (gururajan.jayamani@gmail.com).`);
+        auth.signOut();
+      }
+    }
+
+    function showLoginError(msg) {
+      const errBox = document.getElementById('login-error');
+      errBox.innerText = msg;
+      errBox.style.display = 'block';
+    }
+
+    // Google Login Button
+    document.getElementById('btn-google-login').addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => {
+        const emailInput = document.getElementById('login-email-input').value;
+        if (emailInput) {
+          verifyAndLogin(emailInput, 'Authorized User');
+        } else {
+          showLoginError('Google Sign-In failed or was cancelled. Enter authorized email to verify.');
+        }
+      });
+    });
+
+    document.getElementById('btn-email-login').addEventListener('click', () => {
+      const emailInput = document.getElementById('login-email-input').value;
+      if (emailInput) {
+        verifyAndLogin(emailInput, 'Authorized User');
+      } else {
+        showLoginError('Please enter an authorized email address.');
+      }
+    });
+
+    document.getElementById('btn-signout').addEventListener('click', () => {
+      auth.signOut();
+      currentUser = null;
+      document.getElementById('login-overlay').style.display = 'flex';
+    });
+
+    // Firestore Realtime Listeners
+    function setupFirestoreListeners() {
+      db.collection('houses').onSnapshot(snapshot => {
+        houses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        render();
+      });
+
+      db.collection('collections').onSnapshot(snapshot => {
+        collections = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        render();
+      });
+
+      db.collection('tenants').onSnapshot(snapshot => {
+        tenants = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        render();
+      });
+
+      db.collection('app_users').onSnapshot(snapshot => {
+        users = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        render();
+      });
+    }
+
+    // Navigation & Tabs
+    document.getElementById('tab-rent').addEventListener('click', () => switchTab('rent'));
+    document.getElementById('tab-properties').addEventListener('click', () => switchTab('properties'));
+    document.getElementById('btn-settings').addEventListener('click', () => switchTab('settings'));
+    document.getElementById('btn-settings-back').addEventListener('click', () => switchTab('rent'));
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-rent').classList.toggle('active', tab === 'rent');
+      document.getElementById('tab-properties').classList.toggle('active', tab === 'properties');
+      document.getElementById('section-rent').style.display = tab === 'rent' ? 'block' : 'none';
+      document.getElementById('section-properties').style.display = tab === 'properties' ? 'block' : 'none';
+      document.getElementById('section-settings').style.display = tab === 'settings' ? 'block' : 'none';
+      document.getElementById('fab-add').style.display = (tab === 'rent' || tab === 'properties') ? 'flex' : 'none';
+    }
+
+    // Search Filter
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      render();
+    });
+
+    // Render Logic
+    function render() {
+      document.getElementById('rent-count').innerText = collections.length;
+      document.getElementById('prop-count').innerText = houses.length;
+
+      // Summary Header
+      const totalCollected = collections.reduce((acc, curr) => acc + (Number(curr.paidAmt) || 0), 0);
+      const totalPending = collections.reduce((acc, curr) => acc + (Number(curr.pendingAmt) || 0), 0);
+      document.getElementById('total-collected').innerText = `₹${totalCollected}`;
+      document.getElementById('total-pending').innerText = `₹${totalPending}`;
+
+      // Filtered Lists
+      const filteredRent = collections.filter(c => 
+        !searchQuery || 
+        (c.houseId && c.houseId.toLowerCase().includes(searchQuery)) ||
+        (c.paidBy && c.paidBy.toLowerCase().includes(searchQuery))
+      );
+
+      const filteredHouses = houses.filter(h => 
+        !searchQuery || 
+        (h.houseName && h.houseName.toLowerCase().includes(searchQuery)) ||
+        (h.location && h.location.toLowerCase().includes(searchQuery))
+      );
+
+      // Rent List Items
+      const rentListEl = document.getElementById('rent-list');
+      rentListEl.innerHTML = filteredRent.map(c => `
+        <div class="item-card" onclick="openRentDetail('${c.docId}')">
+          <div class="card-title-group">
+            <span class="badge secondary">${c.houseId || 'Property'}</span>
+          </div>
+          <div class="card-amount">Paid: ₹${c.paidAmt || 0}</div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+        </div>
+      `).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No rent records found</div>';
+
+      // Properties List Items
+      const propListEl = document.getElementById('properties-list');
+      propListEl.innerHTML = filteredHouses.map(h => `
+        <div class="item-card" onclick="openPropertyDetail('${h.docId}')">
+          <div class="card-title-group">
+            <div class="card-name">${h.houseName}</div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+        </div>
+      `).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No properties found</div>';
+    }
+
+    // Detail Modals
+    function openRentDetail(docId) {
+      const c = collections.find(x => x.docId === docId);
+      if (!c) return;
+      document.getElementById('detail-title').innerText = `Rent Log (${c.houseId})`;
+      document.getElementById('detail-body').innerHTML = `
+        <div class="detail-row"><label>Paid Amount</label><val style="color: var(--primary);">₹${c.paidAmt || 0}</val></div>
+        <div class="detail-row"><label>Pending Amount</label><val style="color: var(--danger);">₹${c.pendingAmt || 0}</val></div>
+        <div class="detail-row"><label>Paid By</label><val>${c.paidBy || '-'}</val></div>
+        <div class="detail-row"><label>Payment Mode</label><val>${c.paidThru || 'UPI'}</val></div>
+        <div class="detail-row"><label>Date & Time</label><val>${c.paidDT || '-'}</val></div>
+      `;
+      document.getElementById('btn-detail-edit').onclick = () => { closeModal('modal-detail'); openEditRentModal(c); };
+      document.getElementById('btn-detail-delete').onclick = () => { closeModal('modal-detail'); deleteCollection(docId); };
+      openModal('modal-detail');
+    }
+
+    function openPropertyDetail(docId) {
+      const h = houses.find(x => x.docId === docId);
+      if (!h) return;
+      document.getElementById('detail-title').innerText = h.houseName;
+      document.getElementById('detail-body').innerHTML = `
+        <div class="detail-row"><label>📍 Location</label><val>${h.location || 'Not specified'}</val></div>
+        <div class="detail-row"><label>Monthly Rent</label><val>₹${h.monthlyRent || 0}</val></div>
+        <div class="detail-row"><label>Advance Deposit</label><val>₹${h.advance || 0}</val></div>
+        <div class="detail-row"><label>Rent Revision</label><val>₹${h.monthlyRentRevision || 0}</val></div>
+        <div class="detail-row"><label>Revision Date</label><val>${h.revisionDate || '-'}</val></div>
+        <div class="detail-row"><label>Tenancy Date</label><val>${h.tenancyDate || '-'}</val></div>
+        <div class="detail-row"><label>👤 Tenant Name</label><val>${h.tenantName || 'Unoccupied'}</val></div>
+        <div class="detail-row"><label>📞 Phone</label><val>${h.phoneNumber || '-'}</val></div>
+      `;
+      document.getElementById('btn-detail-edit').onclick = () => { closeModal('modal-detail'); openEditPropertyModal(h); };
+      document.getElementById('btn-detail-delete').onclick = () => { closeModal('modal-detail'); deleteHouse(docId); };
+      openModal('modal-detail');
+    }
+
+    // Modal Controls
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // FAB Click Action
+    document.getElementById('fab-add').addEventListener('click', () => {
+      if (currentTab === 'rent') openEditRentModal(null);
+      else openEditPropertyModal(null);
+    });
+
+    // Add / Edit Property Modal
+    function openEditPropertyModal(h) {
+      document.getElementById('prop-modal-title').innerText = h ? 'Edit Property Details' : 'Add Property';
+      document.getElementById('prop-doc-id').value = h ? h.docId : '';
+      document.getElementById('prop-name').value = h ? h.houseName : '';
+      document.getElementById('prop-location').value = h ? h.location : '';
+      document.getElementById('prop-rent').value = h ? h.monthlyRent : '';
+      document.getElementById('prop-advance').value = h ? h.advance : '';
+      document.getElementById('prop-revision').value = h ? h.monthlyRentRevision : '';
+      document.getElementById('prop-rev-date').value = h ? h.revisionDate : '';
+      document.getElementById('prop-tenancy-date').value = h ? h.tenancyDate : '';
+      document.getElementById('prop-phone').value = h ? h.phoneNumber : '';
+
+      // Populate Tenants Dropdown
+      const tenantSelect = document.getElementById('prop-tenant-name');
+      tenantSelect.innerHTML = '<option value="">-- Select Tenant --</option>' + 
+        tenants.map(t => `<option value="${t.tenantName}">${t.tenantName}</option>`).join('');
+      if (h && h.tenantName) tenantSelect.value = h.tenantName;
+
+      openModal('modal-property');
+    }
+
+    document.getElementById('form-property').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('prop-doc-id').value;
+      const houseName = document.getElementById('prop-name').value.trim();
+      const data = {
+        houseId: houseName,
+        houseName: houseName,
+        location: document.getElementById('prop-location').value.trim(),
+        monthlyRent: Number(document.getElementById('prop-rent').value) || 0,
+        advance: Number(document.getElementById('prop-advance').value) || 0,
+        monthlyRentRevision: Number(document.getElementById('prop-revision').value) || 0,
+        revisionDate: document.getElementById('prop-rev-date').value,
+        tenancyDate: document.getElementById('prop-tenancy-date').value,
+        tenantName: document.getElementById('prop-tenant-name').value,
+        phoneNumber: document.getElementById('prop-phone').value.trim()
+      };
+
+      if (docId) db.collection('houses').doc(docId).set(data);
+      else db.collection('houses').add(data);
+      closeModal('modal-property');
+    });
+
+    // Add / Edit Rent Modal
+    function openEditRentModal(c) {
+      document.getElementById('rent-modal-title').innerText = c ? 'Edit Rent Log' : 'Add Rent Collection';
+      document.getElementById('rent-doc-id').value = c ? c.docId : '';
+      document.getElementById('rent-paid').value = c ? c.paidAmt : '';
+      document.getElementById('rent-pending').value = c ? c.pendingAmt : '';
+      
+      const nowStr = new Date().toISOString().slice(0, 10) + ' 10:00 AM';
+      document.getElementById('rent-dt').value = c ? c.paidDT : nowStr;
+
+      // Populate Property Select
+      const propSelect = document.getElementById('rent-prop-select');
+      propSelect.innerHTML = houses.map(h => `<option value="${h.houseName}">${h.houseName}</option>`).join('');
+      if (c && c.houseId) propSelect.value = c.houseId;
+
+      // Populate Paid By Select
+      const paidBySelect = document.getElementById('rent-paid-by');
+      const tenantNames = tenants.map(t => t.tenantName).concat(houses.map(h => h.tenantName)).filter(Boolean);
+      paidBySelect.innerHTML = Array.from(new Set(tenantNames)).map(n => `<option value="${n}">${n}</option>`).join('');
+      if (c && c.paidBy) paidBySelect.value = c.paidBy;
+
+      openModal('modal-rent');
+    }
+
+    document.getElementById('form-rent').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('rent-doc-id').value;
+      const data = {
+        houseId: document.getElementById('rent-prop-select').value,
+        paidAmt: Number(document.getElementById('rent-paid').value) || 0,
+        pendingAmt: Number(document.getElementById('rent-pending').value) || 0,
+        paidBy: document.getElementById('rent-paid-by').value,
+        paidThru: document.getElementById('rent-paid-thru').value,
+        paidDT: document.getElementById('rent-dt').value.trim()
+      };
+
+      if (docId) db.collection('collections').doc(docId).set(data);
+      else db.collection('collections').add(data);
+      closeModal('modal-rent');
+    });
+
+    // Delete Operations
+    function deleteHouse(docId) { if (confirm('Delete this property?')) db.collection('houses').doc(docId).delete(); }
+    function deleteCollection(docId) { if (confirm('Delete this rent collection record?')) db.collection('collections').doc(docId).delete(); }
+
+    // User Administration Modal Actions
+    document.getElementById('btn-manage-users').addEventListener('click', () => {
+      const listEl = document.getElementById('users-list');
+      listEl.innerHTML = users.map(u => `
+        <div class="item-card" style="cursor: default;">
+          <div>
+            <div class="card-name">${u.displayName} (${u.role})</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${u.email}</div>
+          </div>
+          <button class="icon-btn danger" onclick="deleteUser('${u.docId}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('');
+      openModal('modal-users');
+    });
+
+    document.getElementById('btn-add-user').addEventListener('click', () => {
+      const email = prompt('Enter new authorized email address:');
+      if (email) {
+        db.collection('app_users').add({
+          email: email.trim().toLowerCase(),
+          displayName: email.split('@')[0],
+          role: 'Admin',
+          status: 'Active',
+          addedAt: new Date().toISOString().slice(0, 10)
+        });
+      }
+    });
+
+    function deleteUser(docId) { db.collection('app_users').doc(docId).delete(); }
+
+    // Tenant Administration Modal Actions
+    document.getElementById('btn-manage-tenants').addEventListener('click', () => {
+      const listEl = document.getElementById('tenants-list');
+      listEl.innerHTML = tenants.map(t => `
+        <div class="item-card" style="cursor: default;">
+          <div>
+            <div class="card-name">${t.tenantName}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Phone: ${t.phoneNumber || '-'}</div>
+          </div>
+          <button class="icon-btn danger" onclick="deleteTenant('${t.docId}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('');
+      openModal('modal-tenants');
+    });
+
+    document.getElementById('btn-add-tenant').addEventListener('click', () => {
+      const name = prompt('Enter Tenant Name:');
+      if (name) {
+        db.collection('tenants').add({
+          tenantName: name.trim(),
+          phoneNumber: '',
+          addedAt: new Date().toISOString().slice(0, 10)
+        });
+      }
+    });
+
+    function deleteTenant(docId) { db.collection('tenants').doc(docId).delete(); }
+  </script>
+</body>
+</html>
