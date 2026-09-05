@@ -14,7 +14,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,7 +33,7 @@ class PropertyRepository {
         try {
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
-            Log.w("PropertyRepository", "Firebase not initialized. Running in local fallback mode.", e)
+            Log.e("PropertyRepository", "FirebaseFirestore failed to initialize", e)
             null
         }
     }
@@ -42,173 +41,28 @@ class PropertyRepository {
     // Default Logged In User State starts as null so user must authenticate
     val currentUserState = MutableStateFlow<AppUser?>(null)
 
-    // Initial Authorized Users List with Gururajan Jayamani as default Admin & ganapathiraj@gmail.com
-    private val localUsers = MutableStateFlow<List<AppUser>>(
-        listOf(
-            AppUser(
-                docId = "u_default_admin",
-                uid = "uid_gururajan",
-                email = "gururajan.jayamani@gmail.com",
-                displayName = "Gururajan Jayamani",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_ganapathiraj",
-                uid = "uid_ganapathiraj",
-                email = "ganapathiraj@gmail.com",
-                displayName = "Ganapathiraj",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_vanitha_sct",
-                uid = "uid_vanitha_sct",
-                email = "sctvanithathiyagarajan747@gmail.com",
-                displayName = "Sctvanitha Thiyagarajan",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_haarish",
-                uid = "uid_haarish",
-                email = "haarishgururajan@gmail.com",
-                displayName = "Haarish Gururajan",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_vanitha_spare",
-                uid = "uid_vanitha_spare",
-                email = "vaniguru.spareuse@gmail.com",
-                displayName = "Vanitha",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_admin_fallback",
-                uid = "uid_admin_fallback",
-                email = "admin@guruproperties.com",
-                displayName = "Guru Property Admin",
-                role = "Admin",
-                status = "Active",
-                addedAt = "2026-01-01"
-            ),
-            AppUser(
-                docId = "u_manager_fallback",
-                uid = "uid_manager_fallback",
-                email = "manager@guruproperties.com",
-                displayName = "Property Manager",
-                role = "Manager",
-                status = "Active",
-                addedAt = "2026-03-15"
-            )
-        )
-    )
+    // Cached live state from Cloud Firestore
+    private val cachedUsers = MutableStateFlow<List<AppUser>>(emptyList())
 
     init {
+        // Start live real-time listener for app_users immediately upon app start
         try {
             db?.collection("app_users")?.addSnapshotListener { snapshot, error ->
-                if (error == null && snapshot != null) {
+                if (error != null) {
+                    Log.e("PropertyRepository", "Error in app_users listener", error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
                     val users = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
                     }
-                    if (users.isNotEmpty()) {
-                        val merged = (localUsers.value + users).distinctBy { it.email.lowercase() }
-                        localUsers.value = merged
-                    }
+                    cachedUsers.value = users
                 }
             }
         } catch (e: Exception) {
-            Log.w("PropertyRepository", "Error initializing background app_users listener", e)
+            Log.e("PropertyRepository", "Error setting up Cloud Firestore app_users listener", e)
         }
     }
-
-    // Local Tenants List
-    private val localTenants = MutableStateFlow<List<Tenant>>(
-        listOf(
-            Tenant(
-                docId = "t1",
-                tenantId = "T101",
-                tenantName = "Rajesh Kumar",
-                phoneNumber = "9876543210",
-                houseId = "Guru Villa 1A",
-                addedAt = "2025-01-15"
-            ),
-            Tenant(
-                docId = "t2",
-                tenantId = "T102",
-                tenantName = "Anita Sharma",
-                phoneNumber = "9123456789",
-                houseId = "Guru Residency 2B",
-                addedAt = "2024-06-01"
-            )
-        )
-    )
-
-    // Local in-memory state for houses
-    private val localHouses = MutableStateFlow<List<House>>(
-        listOf(
-            House(
-                docId = "h1",
-                sNo = 1,
-                houseId = "Guru Villa 1A",
-                houseName = "Guru Villa 1A",
-                location = "Main Road, Sector 4",
-                monthlyRent = 15000.0,
-                advance = 50000.0,
-                monthlyRentRevision = 16500.0,
-                revisionDate = "2026-12-01",
-                tenancyDate = "2025-01-15",
-                tenantName = "Rajesh Kumar",
-                phoneNumber = "9876543210"
-            ),
-            House(
-                docId = "h2",
-                sNo = 2,
-                houseId = "Guru Residency 2B",
-                houseName = "Guru Residency 2B",
-                location = "Lake View, Phase 2",
-                monthlyRent = 22000.0,
-                advance = 70000.0,
-                monthlyRentRevision = 24000.0,
-                revisionDate = "2027-03-01",
-                tenancyDate = "2024-06-01",
-                tenantName = "Anita Sharma",
-                phoneNumber = "9123456789"
-            )
-        )
-    )
-
-    private val localCollections = MutableStateFlow<List<RentCollection>>(
-        listOf(
-            RentCollection(
-                docId = "c1",
-                sNo = 1,
-                houseId = "Guru Villa 1A",
-                pendingAmt = 0.0,
-                paidAmt = 15000.0,
-                paidDT = "2026-08-05 10:30 AM",
-                paidBy = "Rajesh Kumar",
-                paidThru = "UPI"
-            ),
-            RentCollection(
-                docId = "c2",
-                sNo = 2,
-                houseId = "Guru Residency 2B",
-                pendingAmt = 2000.0,
-                paidAmt = 20000.0,
-                paidDT = "2026-08-02 04:15 PM",
-                paidBy = "Anita Sharma",
-                paidThru = "Bank Transfer"
-            )
-        )
-    )
 
     fun getCurrentFirebaseUser(): FirebaseUser? = auth?.currentUser
 
@@ -221,28 +75,57 @@ class PropertyRepository {
         currentUserState.value = null
     }
 
+    /**
+     * Authenticates user against Cloud Firestore 'app_users' collection in real time.
+     */
     fun attemptUserLogin(email: String, name: String): Result<AppUser> {
         val cleanEmail = email.trim().lowercase()
-        val allUsers = localUsers.value
-        
-        var matchedUser = allUsers.find { it.email.trim().lowercase() == cleanEmail }
 
-        // If not found in local memory, check live Cloud Firestore app_users collection
+        // 1. Check in memory cache from active Firestore listener
+        var matchedUser = cachedUsers.value.find { it.email.trim().lowercase() == cleanEmail }
+
+        // 2. If not yet in cache, fetch directly from Cloud Firestore app_users collection
         if (matchedUser == null && db != null) {
             try {
-                val queryTask = db!!.collection("app_users").whereEqualTo("email", cleanEmail).get()
-                val snapshot = Tasks.await(queryTask)
+                val task = db!!.collection("app_users")
+                    .whereEqualTo("email", cleanEmail)
+                    .get()
+                val snapshot = Tasks.await(task)
                 if (snapshot != null && !snapshot.isEmpty) {
                     val doc = snapshot.documents.first()
-                    val userObj = doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
-                    if (userObj != null) {
-                        saveUserLocally(userObj)
-                        matchedUser = userObj
-                    }
+                    matchedUser = doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
                 }
             } catch (e: Exception) {
-                Log.w("PropertyRepository", "Live Firestore user check error: ${e.message}")
+                Log.e("PropertyRepository", "Cloud Firestore login lookup error: ${e.message}", e)
             }
+        }
+
+        // 3. Fallback for primary default admins if cloud query is connecting
+        val defaultAdminEmails = listOf(
+            "gururajan.jayamani@gmail.com",
+            "ganapathiraj@gmail.com",
+            "sctvanithathiyagarajan747@gmail.com",
+            "haarishgururajan@gmail.com",
+            "vaniguru.spareuse@gmail.com"
+        )
+        if (matchedUser == null && defaultAdminEmails.contains(cleanEmail)) {
+            val defaultName = when (cleanEmail) {
+                "gururajan.jayamani@gmail.com" -> "Gururajan Jayamani"
+                "ganapathiraj@gmail.com" -> "Ganapathiraj"
+                "sctvanithathiyagarajan747@gmail.com" -> "Sctvanitha Thiyagarajan"
+                "haarishgururajan@gmail.com" -> "Haarish Gururajan"
+                "vaniguru.spareuse@gmail.com" -> "Vanitha"
+                else -> "Admin"
+            }
+            matchedUser = AppUser(
+                docId = "u_${cleanEmail.hashCode()}",
+                uid = "uid_${cleanEmail.hashCode()}",
+                email = cleanEmail,
+                displayName = if (name.isNotBlank() && name != "Google User") name else defaultName,
+                role = "Admin",
+                status = "Active",
+                addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            )
         }
 
         if (matchedUser != null) {
@@ -254,370 +137,172 @@ class PropertyRepository {
             return Result.success(activeUser)
         }
 
-        val defaultAdminEmails = listOf(
-            "gururajan.jayamani@gmail.com",
-            "ganapathiraj@gmail.com",
-            "sctvanithathiyagarajan747@gmail.com",
-            "haarishgururajan@gmail.com",
-            "vaniguru.spareuse@gmail.com"
-        )
-        if (defaultAdminEmails.contains(cleanEmail)) {
-            val defaultName = when (cleanEmail) {
-                "gururajan.jayamani@gmail.com" -> "Gururajan Jayamani"
-                "ganapathiraj@gmail.com" -> "Ganapathiraj"
-                "sctvanithathiyagarajan747@gmail.com" -> "Sctvanitha Thiyagarajan"
-                "haarishgururajan@gmail.com" -> "Haarish Gururajan"
-                "vaniguru.spareuse@gmail.com" -> "Vanitha"
-                else -> "Admin"
-            }
-            val defaultAdmin = AppUser(
-                docId = "u_${cleanEmail.hashCode()}",
-                uid = "uid_${cleanEmail.hashCode()}",
-                email = cleanEmail,
-                displayName = if (name.isNotBlank() && name != "Google User") name else defaultName,
-                role = "Admin",
-                status = "Active",
-                addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            )
-            currentUserState.value = defaultAdmin
-            return Result.success(defaultAdmin)
-        }
-
         return Result.failure(
-            Exception("Unauthorized Account: Email '$cleanEmail' is not registered as an authorized user. Please contact Administrator (gururajan.jayamani@gmail.com) to request access.")
+            Exception("Unauthorized Account: Email '$cleanEmail' is not registered in Cloud Firestore. Please contact an Administrator to add your account.")
         )
     }
 
     fun getUsersFlow(): Flow<List<AppUser>> = callbackFlow {
-        val firestore = db
-        if (firestore == null) {
-            val job = launch {
-                localUsers.collect { trySend(it) }
-            }
-            awaitClose { job.cancel() }
-        } else {
-            val listener = firestore.collection("app_users")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("PropertyRepository", "Firestore users listener error", error)
-                        trySend(localUsers.value)
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val users = snapshot.documents.mapNotNull { doc ->
-                            doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
-                        }
-                        if (users.isNotEmpty()) {
-                            val merged = (localUsers.value + users).distinctBy { it.email.lowercase() }
-                            localUsers.value = merged
-                        }
-                        trySend(localUsers.value)
-                    }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val listener = firestore.collection("app_users")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("PropertyRepository", "Firestore users listener error", error)
+                    return@addSnapshotListener
                 }
-            awaitClose { listener.remove() }
-        }
+                if (snapshot != null) {
+                    val users = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                    }
+                    cachedUsers.value = users
+                    trySend(users)
+                }
+            }
+        awaitClose { listener.remove() }
     }
 
     suspend fun saveUser(user: AppUser) {
-        val firestore = db
-        saveUserLocally(user)
-        if (firestore != null) {
-            try {
-                if (user.docId.isBlank()) {
-                    firestore.collection("app_users").add(user)
-                } else {
-                    firestore.collection("app_users").document(user.docId).set(user)
-                }
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error saving user to Firestore", e)
-            }
-        }
-    }
-
-    private fun saveUserLocally(user: AppUser) {
-        val currentList = localUsers.value.toMutableList()
-        val index = currentList.indexOfFirst { it.docId == user.docId || (it.email.equals(user.email, ignoreCase = true) && user.email.isNotBlank()) }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
         val formattedDate = if (user.addedAt.isBlank()) SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) else user.addedAt
-        if (index >= 0) {
-            currentList[index] = user.copy(addedAt = formattedDate)
+        val userToSave = user.copy(addedAt = formattedDate)
+        if (userToSave.docId.isBlank()) {
+            firestore.collection("app_users").add(userToSave)
         } else {
-            val newUser = user.copy(
-                docId = if (user.docId.isBlank()) "u_${System.currentTimeMillis()}" else user.docId,
-                addedAt = formattedDate
-            )
-            currentList.add(newUser)
+            firestore.collection("app_users").document(userToSave.docId).set(userToSave)
         }
-        localUsers.value = currentList
     }
 
     suspend fun deleteUser(docId: String) {
-        val firestore = db
-        if (firestore != null) {
-            try {
-                firestore.collection("app_users").document(docId).delete()
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error deleting user", e)
-            }
-        }
-        localUsers.value = localUsers.value.filterNot { it.docId == docId }
+        val firestore = db ?: return
+        firestore.collection("app_users").document(docId).delete()
     }
 
-    // Tenant Management
+    // Tenant Management (Cloud Firestore)
     fun getTenantsFlow(): Flow<List<Tenant>> = callbackFlow {
-        val firestore = db
-        if (firestore == null) {
-            val job = launch {
-                localTenants.collect { trySend(it) }
-            }
-            awaitClose { job.cancel() }
-        } else {
-            val listener = firestore.collection("tenants")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("PropertyRepository", "Firestore tenants listener error", error)
-                        trySend(localTenants.value)
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val tenants = snapshot.documents.mapNotNull { doc ->
-                            doc.toObject(Tenant::class.java)?.copy(docId = doc.id)
-                        }
-                        if (tenants.isNotEmpty()) {
-                            localTenants.value = tenants
-                        }
-                        trySend(localTenants.value)
-                    }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val listener = firestore.collection("tenants")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("PropertyRepository", "Firestore tenants listener error", error)
+                    return@addSnapshotListener
                 }
-            awaitClose { listener.remove() }
-        }
+                if (snapshot != null) {
+                    val tenants = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Tenant::class.java)?.copy(docId = doc.id)
+                    }
+                    trySend(tenants)
+                }
+            }
+        awaitClose { listener.remove() }
     }
 
     suspend fun saveTenant(tenant: Tenant) {
-        val firestore = db
-        saveTenantLocally(tenant)
-        if (firestore != null) {
-            try {
-                if (tenant.docId.isBlank()) {
-                    firestore.collection("tenants").add(tenant)
-                } else {
-                    firestore.collection("tenants").document(tenant.docId).set(tenant)
-                }
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error saving tenant to Firestore", e)
-            }
-        }
-    }
-
-    private fun saveTenantLocally(tenant: Tenant) {
-        val currentList = localTenants.value.toMutableList()
-        val index = currentList.indexOfFirst { it.docId == tenant.docId || (it.tenantName.equals(tenant.tenantName, ignoreCase = true) && tenant.tenantName.isNotBlank()) }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
         val formattedDate = if (tenant.addedAt.isBlank()) SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) else tenant.addedAt
-        if (index >= 0) {
-            currentList[index] = tenant.copy(addedAt = formattedDate)
+        val tenantToSave = tenant.copy(addedAt = formattedDate)
+        if (tenantToSave.docId.isBlank()) {
+            firestore.collection("tenants").add(tenantToSave)
         } else {
-            val nextId = "T${100 + currentList.size + 1}"
-            val newTenant = tenant.copy(
-                docId = if (tenant.docId.isBlank()) "t_${System.currentTimeMillis()}" else tenant.docId,
-                tenantId = if (tenant.tenantId.isBlank()) nextId else tenant.tenantId,
-                addedAt = formattedDate
-            )
-            currentList.add(newTenant)
+            firestore.collection("tenants").document(tenantToSave.docId).set(tenantToSave)
         }
-        localTenants.value = currentList
     }
 
     suspend fun deleteTenant(docId: String) {
-        val firestore = db
-        if (firestore != null) {
-            try {
-                firestore.collection("tenants").document(docId).delete()
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error deleting tenant", e)
-            }
-        }
-        localTenants.value = localTenants.value.filterNot { it.docId == docId }
+        val firestore = db ?: return
+        firestore.collection("tenants").document(docId).delete()
     }
 
+    // Properties Management (Cloud Firestore)
     fun getHousesFlow(): Flow<List<House>> = callbackFlow {
-        val firestore = db
-        if (firestore == null) {
-            val job = launch {
-                localHouses.collect { trySend(it) }
-            }
-            awaitClose { job.cancel() }
-        } else {
-            val listener = firestore.collection("houses")
-                .orderBy("sNo", Query.Direction.ASCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("PropertyRepository", "Firestore house listener error", error)
-                        trySend(localHouses.value)
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val houses = snapshot.documents.mapNotNull { doc ->
-                            doc.toObject(House::class.java)?.copy(docId = doc.id)
-                        }
-                        if (houses.isNotEmpty()) {
-                            localHouses.value = houses
-                        }
-                        trySend(localHouses.value)
-                    }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val listener = firestore.collection("houses")
+            .orderBy("sNo", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("PropertyRepository", "Firestore houses listener error", error)
+                    return@addSnapshotListener
                 }
-            awaitClose { listener.remove() }
-        }
-    }
-
-    fun getCollectionsFlow(): Flow<List<RentCollection>> = callbackFlow {
-        val firestore = db
-        if (firestore == null) {
-            val job = launch {
-                localCollections.collect { trySend(it) }
-            }
-            awaitClose { job.cancel() }
-        } else {
-            val listener = firestore.collection("collections")
-                .orderBy("sNo", Query.Direction.ASCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("PropertyRepository", "Firestore collections listener error", error)
-                        trySend(localCollections.value)
-                        return@addSnapshotListener
+                if (snapshot != null) {
+                    val houses = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(House::class.java)?.copy(docId = doc.id)
                     }
-                    if (snapshot != null) {
-                        val collections = snapshot.documents.mapNotNull { doc ->
-                            doc.toObject(RentCollection::class.java)?.copy(docId = doc.id)
-                        }
-                        if (collections.isNotEmpty()) {
-                            localCollections.value = collections
-                        }
-                        trySend(localCollections.value)
-                    }
+                    trySend(houses)
                 }
-            awaitClose { listener.remove() }
-        }
+            }
+        awaitClose { listener.remove() }
     }
 
     suspend fun saveHouse(house: House) {
-        saveHouseLocally(house)
-        val firestore = db
-        if (firestore != null) {
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val houseToSave = house.copy(houseId = house.houseName)
+        if (houseToSave.docId.isBlank()) {
+            firestore.collection("houses").add(houseToSave)
+        } else {
+            firestore.collection("houses").document(houseToSave.docId).set(houseToSave)
+        }
+
+        // Auto-create tenant in cloud if occupied
+        if (houseToSave.tenantName.isNotBlank()) {
             try {
-                if (house.docId.isBlank()) {
-                    firestore.collection("houses").add(house)
-                } else {
-                    firestore.collection("houses").document(house.docId).set(house)
+                val existing = firestore.collection("tenants").whereEqualTo("tenantName", houseToSave.tenantName).get()
+                val snapshot = Tasks.await(existing)
+                if (snapshot.isEmpty) {
+                    firestore.collection("tenants").add(
+                        Tenant(
+                            tenantName = houseToSave.tenantName,
+                            phoneNumber = houseToSave.phoneNumber,
+                            houseId = houseToSave.houseName,
+                            addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        )
+                    )
                 }
             } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error saving house to Firestore", e)
-            }
-        }
-    }
-
-    private fun saveHouseLocally(house: House) {
-        val currentList = localHouses.value.toMutableList()
-        val index = currentList.indexOfFirst { it.docId == house.docId || (it.houseName.equals(house.houseName, ignoreCase = true) && house.houseName.isNotBlank()) }
-        if (index >= 0) {
-            currentList[index] = house
-        } else {
-            val nextSNo = (currentList.maxOfOrNull { it.sNo } ?: 0) + 1
-            val newHouse = house.copy(
-                docId = if (house.docId.isBlank()) "h_${System.currentTimeMillis()}" else house.docId,
-                houseId = house.houseName,
-                sNo = if (house.sNo <= 0) nextSNo else house.sNo
-            )
-            currentList.add(newHouse)
-        }
-        localHouses.value = currentList
-
-        // Auto-add tenant to tenant list if not present
-        if (house.tenantName.isNotBlank()) {
-            val existingTenants = localTenants.value
-            if (!existingTenants.any { it.tenantName.equals(house.tenantName, ignoreCase = true) }) {
-                saveTenantLocally(
-                    Tenant(
-                        tenantId = "T${100 + existingTenants.size + 1}",
-                        tenantName = house.tenantName,
-                        phoneNumber = house.phoneNumber,
-                        houseId = house.houseName
-                    )
-                )
+                Log.w("PropertyRepository", "Error auto-creating tenant: ${e.message}")
             }
         }
     }
 
     suspend fun deleteHouse(docId: String) {
-        val firestore = db
-        if (firestore != null) {
-            try {
-                firestore.collection("houses").document(docId).delete()
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error deleting house", e)
+        val firestore = db ?: return
+        firestore.collection("houses").document(docId).delete()
+    }
+
+    // Rent Collection Management (Cloud Firestore)
+    fun getCollectionsFlow(): Flow<List<RentCollection>> = callbackFlow {
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val listener = firestore.collection("collections")
+            .orderBy("sNo", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("PropertyRepository", "Firestore collections listener error", error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val collections = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(RentCollection::class.java)?.copy(docId = doc.id)
+                    }
+                    trySend(collections)
+                }
             }
-        }
-        localHouses.value = localHouses.value.filterNot { it.docId == docId }
+        awaitClose { listener.remove() }
     }
 
     suspend fun saveCollection(collection: RentCollection) {
-        saveCollectionLocally(collection)
-        val firestore = db
-        if (firestore != null) {
-            try {
-                if (collection.docId.isBlank()) {
-                    firestore.collection("collections").add(collection)
-                } else {
-                    firestore.collection("collections").document(collection.docId).set(collection)
-                }
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error saving collection to Firestore", e)
-            }
-        }
-    }
+        val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
+        val formattedDate = if (collection.paidDT.isBlank()) {
+            SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.getDefault()).format(Date())
+        } else collection.paidDT
 
-    private fun saveCollectionLocally(collection: RentCollection) {
-        val currentList = localCollections.value.toMutableList()
-        val index = currentList.indexOfFirst { it.docId == collection.docId }
-        if (index >= 0) {
-            currentList[index] = collection
+        val collectionToSave = collection.copy(paidDT = formattedDate)
+        if (collectionToSave.docId.isBlank()) {
+            firestore.collection("collections").add(collectionToSave)
         } else {
-            val nextSNo = (currentList.maxOfOrNull { it.sNo } ?: 0) + 1
-            val formattedDate = if (collection.paidDT.isBlank()) {
-                SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.getDefault()).format(Date())
-            } else collection.paidDT
-
-            val newColl = collection.copy(
-                docId = if (collection.docId.isBlank()) "c_${System.currentTimeMillis()}" else collection.docId,
-                sNo = if (collection.sNo <= 0) nextSNo else collection.sNo,
-                paidDT = formattedDate
-            )
-            currentList.add(newColl)
-        }
-        localCollections.value = currentList
-
-        // Auto-add paidBy as a tenant if not present
-        if (collection.paidBy.isNotBlank()) {
-            val existingTenants = localTenants.value
-            if (!existingTenants.any { it.tenantName.equals(collection.paidBy, ignoreCase = true) }) {
-                saveTenantLocally(
-                    Tenant(
-                        tenantId = "T${100 + existingTenants.size + 1}",
-                        tenantName = collection.paidBy,
-                        houseId = collection.houseId
-                    )
-                )
-            }
+            firestore.collection("collections").document(collectionToSave.docId).set(collectionToSave)
         }
     }
 
     suspend fun deleteCollection(docId: String) {
-        val firestore = db
-        if (firestore != null) {
-            try {
-                firestore.collection("collections").document(docId).delete()
-            } catch (e: Exception) {
-                Log.e("PropertyRepository", "Error deleting collection", e)
-            }
-        }
-        localCollections.value = localCollections.value.filterNot { it.docId == docId }
+        val firestore = db ?: return
+        firestore.collection("collections").document(docId).delete()
     }
 }
