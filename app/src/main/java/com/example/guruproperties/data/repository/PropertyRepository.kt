@@ -5,6 +5,7 @@ import com.example.guruproperties.data.model.AppUser
 import com.example.guruproperties.data.model.House
 import com.example.guruproperties.data.model.RentCollection
 import com.example.guruproperties.data.model.Tenant
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -110,6 +111,24 @@ class PropertyRepository {
         )
     )
 
+    init {
+        try {
+            db?.collection("app_users")?.addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    val users = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                    }
+                    if (users.isNotEmpty()) {
+                        val merged = (localUsers.value + users).distinctBy { it.email.lowercase() }
+                        localUsers.value = merged
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("PropertyRepository", "Error initializing background app_users listener", e)
+        }
+    }
+
     // Local Tenants List
     private val localTenants = MutableStateFlow<List<Tenant>>(
         listOf(
@@ -206,7 +225,25 @@ class PropertyRepository {
         val cleanEmail = email.trim().lowercase()
         val allUsers = localUsers.value
         
-        val matchedUser = allUsers.find { it.email.trim().lowercase() == cleanEmail }
+        var matchedUser = allUsers.find { it.email.trim().lowercase() == cleanEmail }
+
+        // If not found in local memory, check live Cloud Firestore app_users collection
+        if (matchedUser == null && db != null) {
+            try {
+                val queryTask = db!!.collection("app_users").whereEqualTo("email", cleanEmail).get()
+                val snapshot = Tasks.await(queryTask)
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val doc = snapshot.documents.first()
+                    val userObj = doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                    if (userObj != null) {
+                        saveUserLocally(userObj)
+                        matchedUser = userObj
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("PropertyRepository", "Live Firestore user check error: ${e.message}")
+            }
+        }
 
         if (matchedUser != null) {
             if (matchedUser.status.equals("Inactive", ignoreCase = true)) {
