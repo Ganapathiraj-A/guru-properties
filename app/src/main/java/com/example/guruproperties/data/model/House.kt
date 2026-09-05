@@ -1,13 +1,17 @@
 package com.example.guruproperties.data.model
 
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.firebase.firestore.PropertyName
 
+@IgnoreExtraProperties
 data class House(
     @DocumentId
     var docId: String = "",
     @get:PropertyName("sNo") @set:PropertyName("sNo")
-    var sNo: Int = 0,
+    var sNo: Long = 0L,
+    @get:PropertyName("sno") @set:PropertyName("sno")
+    var sno: Long = 0L,
     var houseId: String = "",
     var houseName: String = "",
     var location: String = "",
@@ -19,11 +23,7 @@ data class House(
     var tenantName: String = "",
     var phoneNumber: String = ""
 ) {
-    // Secondary property setter for fallback lowercase 'sno'
-    @PropertyName("sno")
-    fun setSno(s: Int) {
-        if (sNo == 0 && s != 0) {
-            sNo = s
-        }
-    }
+    val displaySNo: Long
+        get() = if (sNo > 0L) sNo else sno
 }
+

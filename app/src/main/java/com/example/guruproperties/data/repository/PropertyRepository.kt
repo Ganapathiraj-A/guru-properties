@@ -54,7 +54,12 @@ class PropertyRepository {
                 }
                 if (snapshot != null) {
                     val users = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                        try {
+                            doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                        } catch (e: Exception) {
+                            Log.w("PropertyRepository", "Failed to deserialize AppUser ${doc.id}: ${e.message}")
+                            null
+                        }
                     }
                     cachedUsers.value = users
                 }
@@ -152,7 +157,12 @@ class PropertyRepository {
                 }
                 if (snapshot != null) {
                     val users = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                        try {
+                            doc.toObject(AppUser::class.java)?.copy(docId = doc.id)
+                        } catch (e: Exception) {
+                            Log.w("PropertyRepository", "Error deserializing user ${doc.id}: ${e.message}")
+                            null
+                        }
                     }
                     cachedUsers.value = users
                     trySend(users)
@@ -188,7 +198,12 @@ class PropertyRepository {
                 }
                 if (snapshot != null) {
                     val tenants = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(Tenant::class.java)?.copy(docId = doc.id)
+                        try {
+                            doc.toObject(Tenant::class.java)?.copy(docId = doc.id)
+                        } catch (e: Exception) {
+                            Log.w("PropertyRepository", "Error deserializing tenant ${doc.id}: ${e.message}")
+                            null
+                        }
                     }
                     trySend(tenants)
                 }
@@ -223,8 +238,13 @@ class PropertyRepository {
                 }
                 if (snapshot != null) {
                     val houses = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(House::class.java)?.copy(docId = doc.id)
-                    }.sortedWith(compareBy({ if (it.sNo > 0) it.sNo else Int.MAX_VALUE }, { it.houseName }))
+                        try {
+                            doc.toObject(House::class.java)?.copy(docId = doc.id)
+                        } catch (e: Exception) {
+                            Log.w("PropertyRepository", "Error deserializing house ${doc.id}: ${e.message}")
+                            null
+                        }
+                    }.sortedWith(compareBy({ if (it.displaySNo > 0) it.displaySNo else Long.MAX_VALUE }, { it.houseName }))
                     trySend(houses)
                 }
             }
@@ -291,9 +311,14 @@ class PropertyRepository {
                 }
                 if (snapshot != null) {
                     val collections = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(RentCollection::class.java)?.copy(docId = doc.id)
+                        try {
+                            doc.toObject(RentCollection::class.java)?.copy(docId = doc.id)
+                        } catch (e: Exception) {
+                            Log.w("PropertyRepository", "Error deserializing collection ${doc.id}: ${e.message}")
+                            null
+                        }
                     }.sortedWith(compareByDescending<RentCollection> { it.paidDT }
-                        .thenBy { if (it.sNo > 0) it.sNo else Int.MAX_VALUE })
+                        .thenBy { if (it.displaySNo > 0) it.displaySNo else Long.MAX_VALUE })
                     trySend(collections)
                 }
             }

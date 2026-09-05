@@ -1,7 +1,9 @@
 package com.example.guruproperties.data.model
 
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.IgnoreExtraProperties
 
+@IgnoreExtraProperties
 data class Tenant(
     @DocumentId
     val docId: String = "",
@@ -11,3 +13,4 @@ data class Tenant(
     val houseId: String = "",
     val addedAt: String = ""
 )
+
