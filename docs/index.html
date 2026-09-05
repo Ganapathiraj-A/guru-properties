@@ -1154,11 +1154,16 @@
       openModal('modal-property');
     }
 
-    document.getElementById('form-property').addEventListener('submit', (e) => {
+    document.getElementById('form-property').addEventListener('submit', async (e) => {
       e.preventDefault();
       const docId = document.getElementById('prop-doc-id').value;
       const houseName = document.getElementById('prop-name').value.trim();
+      const existingHouse = docId ? houses.find(h => h.docId === docId) : null;
+      const sNoValue = existingHouse && existingHouse.sNo ? existingHouse.sNo : (houses.length + 1);
+
       const data = {
+        sNo: sNoValue,
+        sno: sNoValue,
         houseId: houseName,
         houseName: houseName,
         location: document.getElementById('prop-location').value.trim(),
@@ -1171,9 +1176,18 @@
         phoneNumber: document.getElementById('prop-phone').value.trim()
       };
 
-      if (docId) db.collection('houses').doc(docId).set(data);
-      else db.collection('houses').add(data);
-      closeModal('modal-property');
+      try {
+        if (docId) {
+          await db.collection('houses').doc(docId).set(data, { merge: true });
+        } else {
+          await db.collection('houses').add(data);
+        }
+        closeModal('modal-property');
+        alert(`Property "${houseName}" saved successfully!`);
+      } catch (err) {
+        console.error("Failed to save property:", err);
+        alert(`Failed to save property: ${err.message}`);
+      }
     });
 
     // Add / Edit Rent Modal
@@ -1200,10 +1214,15 @@
       openModal('modal-rent');
     }
 
-    document.getElementById('form-rent').addEventListener('submit', (e) => {
+    document.getElementById('form-rent').addEventListener('submit', async (e) => {
       e.preventDefault();
       const docId = document.getElementById('rent-doc-id').value;
+      const existingCollection = docId ? collections.find(c => c.docId === docId) : null;
+      const sNoValue = existingCollection && existingCollection.sNo ? existingCollection.sNo : (collections.length + 1);
+
       const data = {
+        sNo: sNoValue,
+        sno: sNoValue,
         houseId: document.getElementById('rent-prop-select').value,
         paidAmt: Number(document.getElementById('rent-paid').value) || 0,
         pendingAmt: Number(document.getElementById('rent-pending').value) || 0,
@@ -1212,14 +1231,42 @@
         paidDT: document.getElementById('rent-dt').value.trim()
       };
 
-      if (docId) db.collection('collections').doc(docId).set(data);
-      else db.collection('collections').add(data);
-      closeModal('modal-rent');
+      try {
+        if (docId) {
+          await db.collection('collections').doc(docId).set(data, { merge: true });
+        } else {
+          await db.collection('collections').add(data);
+        }
+        closeModal('modal-rent');
+        alert('Rent collection saved successfully!');
+      } catch (err) {
+        console.error("Failed to save rent collection:", err);
+        alert(`Failed to save rent collection: ${err.message}`);
+      }
     });
 
     // Delete Operations
-    function deleteHouse(docId) { if (confirm('Delete this property?')) db.collection('houses').doc(docId).delete(); }
-    function deleteCollection(docId) { if (confirm('Delete this rent collection record?')) db.collection('collections').doc(docId).delete(); }
+    async function deleteHouse(docId) {
+      if (confirm('Delete this property?')) {
+        try {
+          await db.collection('houses').doc(docId).delete();
+          alert('Property deleted successfully!');
+        } catch (err) {
+          alert(`Failed to delete property: ${err.message}`);
+        }
+      }
+    }
+
+    async function deleteCollection(docId) {
+      if (confirm('Delete this rent collection record?')) {
+        try {
+          await db.collection('collections').doc(docId).delete();
+          alert('Rent record deleted successfully!');
+        } catch (err) {
+          alert(`Failed to delete rent record: ${err.message}`);
+        }
+      }
+    }
 
     // User Administration Modal Actions
     document.getElementById('btn-manage-users').addEventListener('click', () => {

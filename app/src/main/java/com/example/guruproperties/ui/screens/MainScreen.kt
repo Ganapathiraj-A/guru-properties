@@ -306,6 +306,7 @@ fun MainScreen(
             onDismiss = { showAddHouseDialog = false },
             onSave = { house ->
                 viewModel.saveHouse(house)
+                Toast.makeText(context, "Property '${house.houseName}' saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddHouseDialog = false
             }
         )
@@ -319,6 +320,7 @@ fun MainScreen(
             onDismiss = { showAddCollectionDialog = false },
             onSave = { collection ->
                 viewModel.saveCollection(collection)
+                Toast.makeText(context, "Rent collection saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddCollectionDialog = false
             }
         )
@@ -330,6 +332,7 @@ fun MainScreen(
             onDismiss = { showAddUserDialog = false },
             onSave = { user ->
                 viewModel.saveUser(user)
+                Toast.makeText(context, "User '${user.email}' saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddUserDialog = false
             }
         )
@@ -341,6 +344,7 @@ fun MainScreen(
             onDismiss = { showAddTenantDialog = false },
             onSave = { tenant ->
                 viewModel.saveTenant(tenant)
+                Toast.makeText(context, "Tenant '${tenant.tenantName}' saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddTenantDialog = false
             }
         )

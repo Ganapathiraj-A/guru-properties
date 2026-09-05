@@ -216,7 +216,6 @@ class PropertyRepository {
     fun getHousesFlow(): Flow<List<House>> = callbackFlow {
         val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
         val listener = firestore.collection("houses")
-            .orderBy("sNo", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("PropertyRepository", "Firestore houses listener error", error)
@@ -225,7 +224,7 @@ class PropertyRepository {
                 if (snapshot != null) {
                     val houses = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(House::class.java)?.copy(docId = doc.id)
-                    }
+                    }.sortedWith(compareBy({ if (it.sNo > 0) it.sNo else Int.MAX_VALUE }, { it.houseName }))
                     trySend(houses)
                 }
             }
@@ -234,44 +233,57 @@ class PropertyRepository {
 
     suspend fun saveHouse(house: House) {
         val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
-        val houseToSave = house.copy(houseId = house.houseName)
-        if (houseToSave.docId.isBlank()) {
-            firestore.collection("houses").add(houseToSave)
-        } else {
-            firestore.collection("houses").document(houseToSave.docId).set(houseToSave)
-        }
-
-        // Auto-create tenant in cloud if occupied
-        if (houseToSave.tenantName.isNotBlank()) {
-            try {
-                val existing = firestore.collection("tenants").whereEqualTo("tenantName", houseToSave.tenantName).get()
-                val snapshot = Tasks.await(existing)
-                if (snapshot.isEmpty) {
-                    firestore.collection("tenants").add(
-                        Tenant(
-                            tenantName = houseToSave.tenantName,
-                            phoneNumber = houseToSave.phoneNumber,
-                            houseId = houseToSave.houseName,
-                            addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                        )
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w("PropertyRepository", "Error auto-creating tenant: ${e.message}")
+        try {
+            val houseToSave = house.copy(houseId = house.houseName)
+            if (houseToSave.docId.isBlank()) {
+                val addedDoc = Tasks.await(firestore.collection("houses").add(houseToSave))
+                Log.d("PropertyRepository", "House added with ID: ${addedDoc.id}")
+            } else {
+                Tasks.await(firestore.collection("houses").document(houseToSave.docId).set(houseToSave))
+                Log.d("PropertyRepository", "House updated for ID: ${houseToSave.docId}")
             }
+
+            // Auto-create tenant in cloud if occupied
+            if (houseToSave.tenantName.isNotBlank()) {
+                try {
+                    val existing = firestore.collection("tenants").whereEqualTo("tenantName", houseToSave.tenantName).get()
+                    val snapshot = Tasks.await(existing)
+                    if (snapshot.isEmpty) {
+                        Tasks.await(
+                            firestore.collection("tenants").add(
+                                Tenant(
+                                    tenantName = houseToSave.tenantName,
+                                    phoneNumber = houseToSave.phoneNumber,
+                                    houseId = houseToSave.houseName,
+                                    addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                                )
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.w("PropertyRepository", "Error auto-creating tenant: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error saving house to Firestore: ${e.message}", e)
+            throw e
         }
     }
 
     suspend fun deleteHouse(docId: String) {
         val firestore = db ?: return
-        firestore.collection("houses").document(docId).delete()
+        try {
+            Tasks.await(firestore.collection("houses").document(docId).delete())
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error deleting house: ${e.message}", e)
+            throw e
+        }
     }
 
     // Rent Collection Management (Cloud Firestore)
     fun getCollectionsFlow(): Flow<List<RentCollection>> = callbackFlow {
         val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
         val listener = firestore.collection("collections")
-            .orderBy("sNo", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("PropertyRepository", "Firestore collections listener error", error)
@@ -280,7 +292,8 @@ class PropertyRepository {
                 if (snapshot != null) {
                     val collections = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(RentCollection::class.java)?.copy(docId = doc.id)
-                    }
+                    }.sortedWith(compareByDescending<RentCollection> { it.paidDT }
+                        .thenBy { if (it.sNo > 0) it.sNo else Int.MAX_VALUE })
                     trySend(collections)
                 }
             }
@@ -289,20 +302,32 @@ class PropertyRepository {
 
     suspend fun saveCollection(collection: RentCollection) {
         val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
-        val formattedDate = if (collection.paidDT.isBlank()) {
-            SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.getDefault()).format(Date())
-        } else collection.paidDT
+        try {
+            val formattedDate = if (collection.paidDT.isBlank()) {
+                SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.getDefault()).format(Date())
+            } else collection.paidDT
 
-        val collectionToSave = collection.copy(paidDT = formattedDate)
-        if (collectionToSave.docId.isBlank()) {
-            firestore.collection("collections").add(collectionToSave)
-        } else {
-            firestore.collection("collections").document(collectionToSave.docId).set(collectionToSave)
+            val collectionToSave = collection.copy(paidDT = formattedDate)
+            if (collectionToSave.docId.isBlank()) {
+                val addedDoc = Tasks.await(firestore.collection("collections").add(collectionToSave))
+                Log.d("PropertyRepository", "Rent collection added with ID: ${addedDoc.id}")
+            } else {
+                Tasks.await(firestore.collection("collections").document(collectionToSave.docId).set(collectionToSave))
+                Log.d("PropertyRepository", "Rent collection updated for ID: ${collectionToSave.docId}")
+            }
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error saving rent collection: ${e.message}", e)
+            throw e
         }
     }
 
     suspend fun deleteCollection(docId: String) {
         val firestore = db ?: return
-        firestore.collection("collections").document(docId).delete()
+        try {
+            Tasks.await(firestore.collection("collections").document(docId).delete())
+        } catch (e: Exception) {
+            Log.e("PropertyRepository", "Error deleting collection: ${e.message}", e)
+            throw e
+        }
     }
 }
