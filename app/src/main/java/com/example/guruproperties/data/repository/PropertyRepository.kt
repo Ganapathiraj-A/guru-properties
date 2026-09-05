@@ -63,6 +63,33 @@ class PropertyRepository {
                 addedAt = "2026-01-01"
             ),
             AppUser(
+                docId = "u_vanitha_sct",
+                uid = "uid_vanitha_sct",
+                email = "sctvanithathiyagarajan747@gmail.com",
+                displayName = "Sctvanitha Thiyagarajan",
+                role = "Admin",
+                status = "Active",
+                addedAt = "2026-01-01"
+            ),
+            AppUser(
+                docId = "u_haarish",
+                uid = "uid_haarish",
+                email = "haarishgururajan@gmail.com",
+                displayName = "Haarish Gururajan",
+                role = "Admin",
+                status = "Active",
+                addedAt = "2026-01-01"
+            ),
+            AppUser(
+                docId = "u_vanitha_spare",
+                uid = "uid_vanitha_spare",
+                email = "vaniguru.spareuse@gmail.com",
+                displayName = "Vanitha",
+                role = "Admin",
+                status = "Active",
+                addedAt = "2026-01-01"
+            ),
+            AppUser(
                 docId = "u_admin_fallback",
                 uid = "uid_admin_fallback",
                 email = "admin@guruproperties.com",
@@ -190,12 +217,27 @@ class PropertyRepository {
             return Result.success(activeUser)
         }
 
-        if (cleanEmail == "gururajan.jayamani@gmail.com" || cleanEmail == "ganapathiraj@gmail.com") {
+        val defaultAdminEmails = listOf(
+            "gururajan.jayamani@gmail.com",
+            "ganapathiraj@gmail.com",
+            "sctvanithathiyagarajan747@gmail.com",
+            "haarishgururajan@gmail.com",
+            "vaniguru.spareuse@gmail.com"
+        )
+        if (defaultAdminEmails.contains(cleanEmail)) {
+            val defaultName = when (cleanEmail) {
+                "gururajan.jayamani@gmail.com" -> "Gururajan Jayamani"
+                "ganapathiraj@gmail.com" -> "Ganapathiraj"
+                "sctvanithathiyagarajan747@gmail.com" -> "Sctvanitha Thiyagarajan"
+                "haarishgururajan@gmail.com" -> "Haarish Gururajan"
+                "vaniguru.spareuse@gmail.com" -> "Vanitha"
+                else -> "Admin"
+            }
             val defaultAdmin = AppUser(
                 docId = "u_${cleanEmail.hashCode()}",
                 uid = "uid_${cleanEmail.hashCode()}",
                 email = cleanEmail,
-                displayName = if (name.isNotBlank() && name != "Google User") name else if (cleanEmail.contains("gururajan")) "Gururajan Jayamani" else "Ganapathiraj",
+                displayName = if (name.isNotBlank() && name != "Google User") name else defaultName,
                 role = "Admin",
                 status = "Active",
                 addedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
