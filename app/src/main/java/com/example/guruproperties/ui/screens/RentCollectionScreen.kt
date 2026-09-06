@@ -153,15 +153,22 @@ fun RentCollectionScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = "Paid: ₹${collection.paidAmt}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Paid: ₹${collection.paidAmt}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (collection.pendingAmt > 0.0) {
+                                    Text(
+                                        text = "Pending: ₹${collection.pendingAmt}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
 
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,

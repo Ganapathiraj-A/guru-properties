@@ -47,6 +47,7 @@ import com.example.guruproperties.data.model.House
 @Composable
 fun PropertyListScreen(
     houses: List<House>,
+    collections: List<com.example.guruproperties.data.model.RentCollection> = emptyList(),
     onEditHouse: (House) -> Unit,
     onDeleteHouse: (String) -> Unit
 ) {
@@ -78,6 +79,13 @@ fun PropertyListScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(houses) { house ->
+                val houseCollections = collections.filter {
+                    it.houseId.equals(house.houseName, ignoreCase = true) ||
+                            (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+                }
+                val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
+                val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -118,6 +126,27 @@ fun PropertyListScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                            if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (totalPaidForHouse > 0.0) {
+                                        Text(
+                                            text = "Paid: ₹$totalPaidForHouse",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (totalPendingForHouse > 0.0) {
+                                        Text(
+                                            text = "Pending: ₹$totalPendingForHouse",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -178,6 +207,29 @@ fun PropertyListScreen(
                         Column {
                             Text("Tenancy Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                             Text(house.tenancyDate.ifBlank { "-" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    val houseCollections = collections.filter {
+                        it.houseId.equals(house.houseName, ignoreCase = true) ||
+                                (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+                    }
+                    val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
+                    val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
+
+                    if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Total Paid", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text("₹$totalPaidForHouse", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Column {
+                                Text("Total Pending", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text("₹$totalPendingForHouse", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
 
