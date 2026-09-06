@@ -87,51 +87,83 @@ class MainViewModel(
         repository.signOut()
     }
 
-    fun saveUser(user: AppUser) {
+    fun saveUser(user: AppUser, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.saveUser(user)
+            try {
+                repository.saveUser(user)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to save user")
+            }
         }
     }
 
-    fun deleteUser(docId: String) {
+    fun deleteUser(docId: String, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.deleteUser(docId)
+            try {
+                repository.deleteUser(docId)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to delete user")
+            }
         }
     }
 
-    fun saveTenant(tenant: Tenant) {
+    fun saveTenant(tenant: Tenant, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.saveTenant(tenant)
+            try {
+                repository.saveTenant(tenant)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to save tenant")
+            }
         }
     }
 
-    fun deleteTenant(docId: String) {
+    fun deleteTenant(docId: String, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.deleteTenant(docId)
+            try {
+                repository.deleteTenant(docId)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to delete tenant")
+            }
         }
     }
 
-    fun saveHouse(house: House) {
+    fun saveHouse(house: House, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.saveHouse(house)
+            try {
+                repository.saveHouse(house)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to save property")
+            }
         }
     }
 
-    fun deleteHouse(docId: String) {
+    fun deleteHouse(docId: String, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.deleteHouse(docId)
+            try {
+                repository.deleteHouse(docId)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to delete property")
+            }
         }
     }
 
-    fun saveCollection(collection: RentCollection) {
+    fun saveCollection(collection: RentCollection, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.saveCollection(collection)
+            try {
+                repository.saveCollection(collection)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to save rent collection")
+            }
         }
     }
 
-    fun deleteCollection(docId: String) {
+    fun deleteCollection(docId: String, onError: ((String) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.deleteCollection(docId)
+            try {
+                repository.deleteCollection(docId)
+            } catch (e: Exception) {
+                onError?.invoke(e.message ?: "Failed to delete rent collection")
+            }
         }
     }
 }

@@ -8,10 +8,6 @@ import com.google.firebase.firestore.PropertyName
 data class House(
     @DocumentId
     var docId: String = "",
-    @get:PropertyName("sNo") @set:PropertyName("sNo")
-    var sNo: Long = 0L,
-    @get:PropertyName("sno") @set:PropertyName("sno")
-    var sno: Long = 0L,
     var houseId: String = "",
     var houseName: String = "",
     var location: String = "",
@@ -22,8 +18,5 @@ data class House(
     var tenancyDate: String = "",
     var tenantName: String = "",
     var phoneNumber: String = ""
-) {
-    val displaySNo: Long
-        get() = if (sNo > 0L) sNo else sno
-}
+)
 

@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -142,9 +142,8 @@ fun UserManagementScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    itemsIndexed(users) { index, user ->
+                    items(users) { user ->
                         UserCard(
-                            sNo = index + 1,
                             user = user,
                             onEdit = { onEditUser(user) },
                             onDelete = { onDeleteUser(user.docId) }
@@ -158,7 +157,6 @@ fun UserManagementScreen(
 
 @Composable
 fun UserCard(
-    sNo: Int,
     user: AppUser,
     onEdit: () -> Unit,
     onDelete: () -> Unit

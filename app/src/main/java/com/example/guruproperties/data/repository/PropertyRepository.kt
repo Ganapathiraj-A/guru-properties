@@ -244,7 +244,7 @@ class PropertyRepository {
                             Log.w("PropertyRepository", "Error deserializing house ${doc.id}: ${e.message}")
                             null
                         }
-                    }.sortedWith(compareBy({ if (it.displaySNo > 0) it.displaySNo else Long.MAX_VALUE }, { it.houseName }))
+                    }.sortedBy { it.houseName.lowercase() }
                     trySend(houses)
                 }
             }
@@ -254,7 +254,8 @@ class PropertyRepository {
     suspend fun saveHouse(house: House) {
         val firestore = db ?: throw IllegalStateException("Cloud Firestore is not initialized.")
         try {
-            val houseToSave = house.copy(houseId = house.houseName)
+            val uniqueHouseId = if (house.houseId.isNotBlank()) house.houseId else java.util.UUID.randomUUID().toString()
+            val houseToSave = house.copy(houseId = uniqueHouseId)
             if (houseToSave.docId.isBlank()) {
                 val addedDoc = Tasks.await(firestore.collection("houses").add(houseToSave))
                 Log.d("PropertyRepository", "House added with ID: ${addedDoc.id}")
@@ -317,8 +318,7 @@ class PropertyRepository {
                             Log.w("PropertyRepository", "Error deserializing collection ${doc.id}: ${e.message}")
                             null
                         }
-                    }.sortedWith(compareByDescending<RentCollection> { it.paidDT }
-                        .thenBy { if (it.displaySNo > 0) it.displaySNo else Long.MAX_VALUE })
+                    }.sortedByDescending { it.paidDT }
                     trySend(collections)
                 }
             }

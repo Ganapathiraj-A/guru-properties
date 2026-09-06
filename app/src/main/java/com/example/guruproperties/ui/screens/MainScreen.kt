@@ -305,7 +305,10 @@ fun MainScreen(
             availableTenants = tenants,
             onDismiss = { showAddHouseDialog = false },
             onSave = { house ->
-                viewModel.saveHouse(house)
+                viewModel.saveHouse(house, onError = { errorMsg ->
+                    Toast.makeText(context, "Error saving property: $errorMsg", Toast.LENGTH_LONG).show()
+                })
+                selectedTab = 1 // Switch to Properties tab so user immediately sees it
                 Toast.makeText(context, "Property '${house.houseName}' saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddHouseDialog = false
             }
@@ -319,7 +322,10 @@ fun MainScreen(
             availableTenants = tenants,
             onDismiss = { showAddCollectionDialog = false },
             onSave = { collection ->
-                viewModel.saveCollection(collection)
+                viewModel.saveCollection(collection, onError = { errorMsg ->
+                    Toast.makeText(context, "Error saving collection: $errorMsg", Toast.LENGTH_LONG).show()
+                })
+                selectedTab = 0 // Switch to Rent collections tab so user immediately sees it
                 Toast.makeText(context, "Rent collection saved to Cloud!", Toast.LENGTH_SHORT).show()
                 showAddCollectionDialog = false
             }
