@@ -348,6 +348,7 @@ fun MainScreen(
     if (showAddTenantDialog) {
         AddEditTenantDialog(
             tenant = editingTenant,
+            availableHouses = houses,
             onDismiss = { showAddTenantDialog = false },
             onSave = { tenant ->
                 viewModel.saveTenant(tenant)
