@@ -53,8 +53,6 @@ fun AddEditHouseDialog(
     var location by remember { mutableStateOf(house?.location ?: "") }
     var monthlyRent by remember { mutableStateOf(house?.monthlyRent?.let { if (it == 0.0) "" else it.toString() } ?: "") }
     var advance by remember { mutableStateOf(house?.advance?.let { if (it == 0.0) "" else it.toString() } ?: "") }
-    var monthlyRentRevision by remember { mutableStateOf(house?.monthlyRentRevision?.let { if (it == 0.0) "" else it.toString() } ?: "") }
-    var revisionDate by remember { mutableStateOf(house?.revisionDate ?: "") }
     var tenancyDate by remember { mutableStateOf(house?.tenancyDate ?: "") }
     var tenantName by remember { mutableStateOf(house?.tenantName ?: "") }
     var phoneNumber by remember { mutableStateOf(house?.phoneNumber ?: "") }
@@ -140,37 +138,6 @@ fun AddEditHouseDialog(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = monthlyRentRevision,
-                        onValueChange = { monthlyRentRevision = it },
-                        label = { Text("Rent Revision (₹)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    // Choosable Revision Date Picker
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = revisionDate,
-                            onValueChange = { revisionDate = it },
-                            label = { Text("Revision Date") },
-                            placeholder = { Text("YYYY-MM-DD") },
-                            trailingIcon = {
-                                IconButton(onClick = { openDatePicker(revisionDate) { revisionDate = it } }) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date")
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { openDatePicker(revisionDate) { revisionDate = it } },
-                            singleLine = true
-                        )
-                    }
-                }
-
-                Row(modifier = Modifier.fillMaxWidth()) {
                     // Choosable Tenancy Date Picker
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
@@ -251,8 +218,6 @@ fun AddEditHouseDialog(
                             location = location.trim(),
                             monthlyRent = monthlyRent.toDoubleOrNull() ?: 0.0,
                             advance = advance.toDoubleOrNull() ?: 0.0,
-                            monthlyRentRevision = monthlyRentRevision.toDoubleOrNull() ?: 0.0,
-                            revisionDate = revisionDate.trim(),
                             tenancyDate = tenancyDate.trim(),
                             tenantName = tenantName.trim(),
                             phoneNumber = phoneNumber.trim()

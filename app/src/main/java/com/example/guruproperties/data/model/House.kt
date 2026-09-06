@@ -13,8 +13,6 @@ data class House(
     var location: String = "",
     var monthlyRent: Double = 0.0,
     var advance: Double = 0.0,
-    var monthlyRentRevision: Double = 0.0,
-    var revisionDate: String = "",
     var tenancyDate: String = "",
     var tenantName: String = "",
     var phoneNumber: String = ""

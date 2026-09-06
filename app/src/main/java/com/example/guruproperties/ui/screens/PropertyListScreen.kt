@@ -176,25 +176,9 @@ fun PropertyListScreen(
                             Text("₹${house.advance}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         }
                         Column {
-                            Text("Rent Revision", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text("₹${house.monthlyRentRevision}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text("Tenancy Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text(house.tenancyDate.ifBlank { "-" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                         }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Revision Date: ${house.revisionDate.ifBlank { "-" }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Tenancy Date: ${house.tenancyDate.ifBlank { "-" }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
 
                     HorizontalDivider()
