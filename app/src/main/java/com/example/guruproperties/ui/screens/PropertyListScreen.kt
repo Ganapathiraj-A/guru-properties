@@ -48,6 +48,7 @@ import com.example.guruproperties.data.model.House
 fun PropertyListScreen(
     houses: List<House>,
     collections: List<com.example.guruproperties.data.model.RentCollection> = emptyList(),
+    tenants: List<com.example.guruproperties.data.model.Tenant> = emptyList(),
     onEditHouse: (House) -> Unit,
     onDeleteHouse: (String) -> Unit
 ) {
@@ -85,6 +86,13 @@ fun PropertyListScreen(
                 }
                 val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
                 val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
+
+                // Find active assigned tenant if not directly on house record
+                val assignedTenant = tenants.find {
+                    it.houseId.equals(house.houseName, ignoreCase = true) ||
+                            (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+                }
+                val activeTenantName = house.tenantName.ifBlank { assignedTenant?.tenantName ?: "" }
 
                 Card(
                     modifier = Modifier
@@ -127,6 +135,14 @@ fun PropertyListScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            if (activeTenantName.isNotBlank()) {
+                                Text(
+                                    text = "👤 $activeTenantName",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                             if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,6 +179,12 @@ fun PropertyListScreen(
 
     // Full Details Modal Dialog on Click
     selectedHouseForDetails?.let { house ->
+        val assignedTenant = tenants.find {
+            it.houseId.equals(house.houseName, ignoreCase = true) ||
+                    (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+        }
+        val activeTenantName = house.tenantName.ifBlank { assignedTenant?.tenantName ?: "" }
+        val activePhone = house.phoneNumber.ifBlank { assignedTenant?.phoneNumber ?: "" }
         AlertDialog(
             onDismissRequest = { selectedHouseForDetails = null },
             title = {
@@ -236,14 +258,14 @@ fun PropertyListScreen(
                     HorizontalDivider()
 
                     Text(
-                        text = "👤 Tenant Name: ${house.tenantName.ifBlank { "Unoccupied" }}",
+                        text = "👤 Tenant Name: ${activeTenantName.ifBlank { "Unoccupied" }}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    if (house.phoneNumber.isNotBlank()) {
+                    if (activePhone.isNotBlank()) {
                         Text(
-                            text = "📞 Phone: ${house.phoneNumber}",
+                            text = "📞 Phone: $activePhone",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

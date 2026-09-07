@@ -285,6 +285,7 @@ fun MainScreen(
                         1 -> PropertyListScreen(
                             houses = houses,
                             collections = collections,
+                            tenants = tenants,
                             onEditHouse = { house ->
                                 editingHouse = house
                                 showAddHouseDialog = true

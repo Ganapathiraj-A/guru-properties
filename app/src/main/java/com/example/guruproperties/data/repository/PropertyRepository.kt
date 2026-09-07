@@ -220,6 +220,30 @@ class PropertyRepository {
         } else {
             firestore.collection("tenants").document(tenantToSave.docId).set(tenantToSave)
         }
+
+        // Two-way synchronization: If a house is assigned to this tenant, update the house with this tenant's info
+        if (tenantToSave.houseId.isNotBlank()) {
+            try {
+                val houseSnapshot = Tasks.await(
+                    firestore.collection("houses")
+                        .whereEqualTo("houseName", tenantToSave.houseId)
+                        .get()
+                )
+                for (doc in houseSnapshot.documents) {
+                    Tasks.await(
+                        firestore.collection("houses").document(doc.id).update(
+                            mapOf(
+                                "tenantName" to tenantToSave.tenantName,
+                                "phoneNumber" to tenantToSave.phoneNumber
+                            )
+                        )
+                    )
+                    Log.d("PropertyRepository", "Updated house ${doc.id} with tenant ${tenantToSave.tenantName}")
+                }
+            } catch (e: Exception) {
+                Log.w("PropertyRepository", "Failed to sync tenant to house: ${e.message}")
+            }
+        }
     }
 
     suspend fun deleteTenant(docId: String) {
