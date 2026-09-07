@@ -70,6 +70,16 @@ fun LoginScreen(
         }
     }
 
+    // Automatically check for existing signed-in Google account and restore session on app start
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
+            val email = lastAccount.email!!
+            val name = lastAccount.displayName ?: lastAccount.givenName ?: "Google User"
+            processLogin(email, name)
+        }
+    }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->

@@ -119,6 +119,10 @@ fun MainScreen(
                 onNavigateToUserManagement = { currentView = CurrentView.USER_MANAGEMENT },
                 onNavigateToTenantManagement = { currentView = CurrentView.TENANT_MANAGEMENT },
                 onSignOut = {
+                    val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                        com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                    ).requestEmail().build()
+                    com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso).signOut()
                     viewModel.signOut()
                     currentView = CurrentView.MAIN
                 }
