@@ -42,11 +42,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.Tenant
 
+import androidx.compose.material.icons.filled.Home
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TenantManagementScreen(
     tenants: List<Tenant>,
     onBack: () -> Unit,
+    onHome: (() -> Unit)? = null,
     onAddTenant: () -> Unit,
     onEditTenant: (Tenant) -> Unit,
     onDeleteTenant: (String) -> Unit
@@ -58,6 +61,17 @@ fun TenantManagementScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back to Settings")
+                    }
+                },
+                actions = {
+                    if (onHome != null) {
+                        IconButton(onClick = onHome) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Home",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

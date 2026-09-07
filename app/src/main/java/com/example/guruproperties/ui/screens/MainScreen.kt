@@ -128,6 +128,7 @@ fun MainScreen(
             UserManagementScreen(
                 users = users,
                 onBack = { currentView = CurrentView.SETTINGS },
+                onHome = { currentView = CurrentView.MAIN },
                 onAddUser = {
                     editingUser = null
                     showAddUserDialog = true
@@ -145,6 +146,7 @@ fun MainScreen(
             TenantManagementScreen(
                 tenants = tenants,
                 onBack = { currentView = CurrentView.SETTINGS },
+                onHome = { currentView = CurrentView.MAIN },
                 onAddTenant = {
                     editingTenant = null
                     showAddTenantDialog = true

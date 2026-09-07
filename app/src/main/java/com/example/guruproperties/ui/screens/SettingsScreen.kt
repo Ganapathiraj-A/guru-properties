@@ -52,6 +52,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.AppUser
 
+import androidx.compose.material.icons.filled.Home
+
 private const val APK_URL = "https://github.com/Ganapathiraj-A/guru-properties/releases/download/latest/manageProperties.apk"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +76,15 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Home",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

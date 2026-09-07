@@ -43,11 +43,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.guruproperties.data.model.AppUser
 
+import androidx.compose.material.icons.filled.Home
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
     users: List<AppUser>,
     onBack: (() -> Unit)? = null,
+    onHome: (() -> Unit)? = null,
     onAddUser: () -> Unit,
     onEditUser: (AppUser) -> Unit,
     onDeleteUser: (String) -> Unit
@@ -60,6 +63,17 @@ fun UserManagementScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back to Settings")
+                        }
+                    },
+                    actions = {
+                        if (onHome != null) {
+                            IconButton(onClick = onHome) {
+                                Icon(
+                                    imageVector = Icons.Default.Home,
+                                    contentDescription = "Home",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
