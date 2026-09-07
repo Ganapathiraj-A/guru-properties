@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -107,6 +108,50 @@ fun PropertyListScreen(
             else -> PropertyMonthRentStatus.PENDING_NO_PAYMENT
         }
         return Triple(status, monthPaid, monthPending)
+    }
+
+    // Helper to format date into "MMM - yy" (e.g. "Jan - 26")
+    fun formatCollectionDate(dateStr: String): String {
+        if (dateStr.isBlank()) return "Date not specified"
+        val cleanStr = dateStr.trim()
+
+        val parsePatterns = listOf(
+            "yyyy-MM-dd hh:mm a",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd",
+            "yyyy-MM",
+            "dd-MM-yyyy hh:mm a",
+            "dd-MM-yyyy",
+            "dd/MM/yyyy",
+            "MM/dd/yyyy"
+        )
+        for (pattern in parsePatterns) {
+            try {
+                val parser = SimpleDateFormat(pattern, Locale.ENGLISH).apply { isLenient = true }
+                val parsed = parser.parse(cleanStr)
+                if (parsed != null) {
+                    val outFormat = SimpleDateFormat("MMM - yy", Locale.ENGLISH)
+                    return outFormat.format(parsed)
+                }
+            } catch (_: Exception) {}
+        }
+        // Fallback: If starts with YYYY-MM
+        val ymdRegex = Regex("""^(\d{4})-(\d{2})""")
+        val match = ymdRegex.find(cleanStr)
+        if (match != null) {
+            val (year, month) = match.destructured
+            try {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year.toInt())
+                    set(Calendar.MONTH, month.toInt() - 1)
+                    set(Calendar.DAY_OF_MONTH, 1)
+                }
+                return SimpleDateFormat("MMM - yy", Locale.ENGLISH).format(cal.time)
+            } catch (_: Exception) {}
+        }
+
+        return dateStr
     }
 
     val filteredHouses = remember(houses, collections, selectedFilter, currentYearMonth) {
@@ -366,7 +411,7 @@ fun PropertyListScreen(
                                         modifier = Modifier.padding(end = 4.dp)
                                     )
                                     Text(
-                                        text = col.paidDT.ifBlank { "Date not specified" },
+                                        text = formatCollectionDate(col.paidDT),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold
                                     )
