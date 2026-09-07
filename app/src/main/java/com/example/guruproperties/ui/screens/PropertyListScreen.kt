@@ -17,17 +17,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.HomeWork
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -128,329 +133,47 @@ fun PropertyListScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Filter Chips Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilterChip(
-                selected = selectedFilter == RentStatusFilter.ALL,
-                onClick = { selectedFilter = RentStatusFilter.ALL },
-                label = { Text("All (${houses.size})") }
-            )
-            FilterChip(
-                selected = selectedFilter == RentStatusFilter.COLLECTED,
-                onClick = { selectedFilter = RentStatusFilter.COLLECTED },
-                label = { Text("Collected ($totalCollectedCount)") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = if (selectedFilter == RentStatusFilter.COLLECTED) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-            FilterChip(
-                selected = selectedFilter == RentStatusFilter.PENDING,
-                onClick = { selectedFilter = RentStatusFilter.PENDING },
-                label = { Text("Pending ($totalPendingCount)") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = if (selectedFilter == RentStatusFilter.PENDING) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.error
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
-                )
-            )
-        }
-
-        if (filteredHouses.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = null,
-                        modifier = Modifier.padding(16.dp),
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                    Text(
-                        text = if (houses.isEmpty()) "No property details found" else "No properties match '$selectedFilter' for $currentMonthDisplay",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(filteredHouses) { house ->
-                    val (monthStatus, monthPaid, monthPending) = getHouseMonthStatus(house)
-
-                    // Total across all time
-                    val houseCollections = collections.filter {
-                        it.houseId.equals(house.houseName, ignoreCase = true) ||
-                                (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
-                    }
-                    val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
-                    val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
-
-                    // Find active assigned tenant if not directly on house record
-                    val assignedTenant = tenants.find {
-                        it.houseId.equals(house.houseName, ignoreCase = true) ||
-                                (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
-                    }
-                    val activeTenantName = house.tenantName.ifBlank { assignedTenant?.tenantName ?: "" }
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedHouseForDetails = house },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        when (monthStatus) {
-                                            PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.primaryContainer
-                                            PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.tertiaryContainer
-                                            PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.errorContainer
-                                        }
-                                    )
-                                    .padding(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = when (monthStatus) {
-                                        PropertyMonthRentStatus.COLLECTED -> Icons.Default.CheckCircle
-                                        PropertyMonthRentStatus.PARTIALLY_PAID -> Icons.Default.HourglassEmpty
-                                        PropertyMonthRentStatus.PENDING_NO_PAYMENT -> Icons.Default.Home
-                                    },
-                                    contentDescription = null,
-                                    tint = when (monthStatus) {
-                                        PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.onPrimaryContainer
-                                        PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.onTertiaryContainer
-                                        PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.onErrorContainer
-                                    }
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = house.houseName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    // Month Status Tag
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                when (monthStatus) {
-                                                    PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.primaryContainer
-                                                    PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.tertiaryContainer
-                                                    PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.errorContainer
-                                                }
-                                            )
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = when (monthStatus) {
-                                                PropertyMonthRentStatus.COLLECTED -> "Collected"
-                                                PropertyMonthRentStatus.PARTIALLY_PAID -> "Partial"
-                                                PropertyMonthRentStatus.PENDING_NO_PAYMENT -> "Rent Pending"
-                                            },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = when (monthStatus) {
-                                                PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.onPrimaryContainer
-                                                PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.onTertiaryContainer
-                                                PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.onErrorContainer
-                                            }
-                                        )
-                                    }
-                                }
-
-                                if (house.location.isNotBlank()) {
-                                    Text(
-                                        text = house.location,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                if (activeTenantName.isNotBlank()) {
-                                    Text(
-                                        text = "👤 $activeTenantName",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                                if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        if (totalPaidForHouse > 0.0) {
-                                            Text(
-                                                text = "Paid: ₹$totalPaidForHouse",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        if (totalPendingForHouse > 0.0) {
-                                            Text(
-                                                text = "Pending: ₹$totalPendingForHouse",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "View Details",
-                                tint = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Full Details Modal Dialog on Click
-    selectedHouseForDetails?.let { house ->
+    if (selectedHouseForDetails != null) {
+        val house = selectedHouseForDetails!!
         val assignedTenant = tenants.find {
             it.houseId.equals(house.houseName, ignoreCase = true) ||
                     (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
         }
         val activeTenantName = house.tenantName.ifBlank { assignedTenant?.tenantName ?: "" }
         val activePhone = house.phoneNumber.ifBlank { assignedTenant?.phoneNumber ?: "" }
-        AlertDialog(
-            onDismissRequest = { selectedHouseForDetails = null },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.HomeWork,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
+
+        val houseCollections = collections.filter {
+            it.houseId.equals(house.houseName, ignoreCase = true) ||
+                    (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+        }.sortedByDescending { it.paidDT }
+
+        val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
+        val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Top Navigation & Action Header
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedHouseForDetails = null }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to Properties",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Text(
                         text = house.houseName,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
                     )
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    HorizontalDivider()
-
-                    Text(
-                        text = "📍 Location: ${house.location.ifBlank { "Not specified" }}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text("Monthly Rent", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text("₹${house.monthlyRent}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        }
-                        Column {
-                            Text("Advance Deposit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text("₹${house.advance}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        }
-                        Column {
-                            Text("Tenancy Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text(house.tenancyDate.ifBlank { "-" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    val houseCollections = collections.filter {
-                        it.houseId.equals(house.houseName, ignoreCase = true) ||
-                                (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
-                    }
-                    val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
-                    val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
-
-                    if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("Total Paid", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                Text("₹$totalPaidForHouse", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            }
-                            Column {
-                                Text("Total Pending", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                Text("₹$totalPendingForHouse", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Text(
-                        text = "👤 Tenant Name: ${activeTenantName.ifBlank { "Unoccupied" }}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    if (activePhone.isNotBlank()) {
-                        Text(
-                            text = "📞 Phone: $activePhone",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
                             val h = house
@@ -461,6 +184,7 @@ fun PropertyListScreen(
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
                         Text("Edit")
                     }
+                    Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = {
                             val docId = house.docId
@@ -473,12 +197,479 @@ fun PropertyListScreen(
                         Text("Delete")
                     }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { selectedHouseForDetails = null }) {
-                    Text("Close")
+            }
+
+            // Property Overview Card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.HomeWork,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(
+                                text = "Property Details",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        Text(
+                            text = "📍 Location: ${house.location.ifBlank { "Not specified" }}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Monthly Rent", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text("₹${house.monthlyRent}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Advance Deposit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text("₹${house.advance}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Tenancy Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text(house.tenancyDate.ifBlank { "-" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Total Paid", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text(
+                                    "₹$totalPaidForHouse",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Total Pending", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                Text(
+                                    "₹$totalPendingForHouse",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (totalPendingForHouse > 0.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        Text(
+                            text = "👤 Tenant Name: ${activeTenantName.ifBlank { "Unoccupied" }}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        if (activePhone.isNotBlank()) {
+                            Text(
+                                text = "📞 Phone: $activePhone",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
-        )
+
+            // Rent History Header Section
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            text = "Rent Collection History (${houseCollections.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            if (houseCollections.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No rent collection history recorded for this property.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(houseCollections) { col ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                    Text(
+                                        text = col.paidDT.ifBlank { "Date not specified" },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = col.paidThru.ifBlank { "UPI" },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Paid: ₹${col.paidAmt}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (col.pendingAmt > 0.0) {
+                                    Text(
+                                        text = "Pending: ₹${col.pendingAmt}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+
+                            if (col.paidBy.isNotBlank()) {
+                                Text(
+                                    text = "Paid By: ${col.paidBy}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Filter Chips Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilterChip(
+                    selected = selectedFilter == RentStatusFilter.ALL,
+                    onClick = { selectedFilter = RentStatusFilter.ALL },
+                    label = { Text("All (${houses.size})") }
+                )
+                FilterChip(
+                    selected = selectedFilter == RentStatusFilter.COLLECTED,
+                    onClick = { selectedFilter = RentStatusFilter.COLLECTED },
+                    label = { Text("Collected ($totalCollectedCount)") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = if (selectedFilter == RentStatusFilter.COLLECTED) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+                FilterChip(
+                    selected = selectedFilter == RentStatusFilter.PENDING,
+                    onClick = { selectedFilter = RentStatusFilter.PENDING },
+                    label = { Text("Pending ($totalPendingCount)") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = if (selectedFilter == RentStatusFilter.PENDING) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.error
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                )
+            }
+
+            if (filteredHouses.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = null,
+                            modifier = Modifier.padding(16.dp),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = if (houses.isEmpty()) "No property details found" else "No properties match '$selectedFilter' for $currentMonthDisplay",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredHouses) { house ->
+                        val (monthStatus, monthPaid, monthPending) = getHouseMonthStatus(house)
+
+                        // Total across all time
+                        val houseCollections = collections.filter {
+                            it.houseId.equals(house.houseName, ignoreCase = true) ||
+                                    (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+                        }
+                        val totalPaidForHouse = houseCollections.sumOf { it.paidAmt }
+                        val totalPendingForHouse = houseCollections.sumOf { it.pendingAmt }
+
+                        // Find active assigned tenant if not directly on house record
+                        val assignedTenant = tenants.find {
+                            it.houseId.equals(house.houseName, ignoreCase = true) ||
+                                    (house.houseId.isNotBlank() && it.houseId.equals(house.houseId, ignoreCase = true))
+                        }
+                        val activeTenantName = house.tenantName.ifBlank { assignedTenant?.tenantName ?: "" }
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedHouseForDetails = house },
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            when (monthStatus) {
+                                                PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.primaryContainer
+                                                PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.tertiaryContainer
+                                                PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.errorContainer
+                                            }
+                                        )
+                                        .padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = when (monthStatus) {
+                                            PropertyMonthRentStatus.COLLECTED -> Icons.Default.CheckCircle
+                                            PropertyMonthRentStatus.PARTIALLY_PAID -> Icons.Default.HourglassEmpty
+                                            PropertyMonthRentStatus.PENDING_NO_PAYMENT -> Icons.Default.Warning
+                                        },
+                                        contentDescription = null,
+                                        tint = when (monthStatus) {
+                                            PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.onTertiaryContainer
+                                            PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.onErrorContainer
+                                        }
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(16.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = house.houseName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "₹${house.monthlyRent}/m",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = when (monthStatus) {
+                                                PropertyMonthRentStatus.COLLECTED -> "Paid this month"
+                                                PropertyMonthRentStatus.PARTIALLY_PAID -> "Partial (Paid: ₹$monthPaid, Pend: ₹$monthPending)"
+                                                PropertyMonthRentStatus.PENDING_NO_PAYMENT -> "Rent Pending"
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = when (monthStatus) {
+                                                PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.primary
+                                                PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.tertiary
+                                                PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.error
+                                            }
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(
+                                                    when (monthStatus) {
+                                                        PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.primaryContainer
+                                                        PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.tertiaryContainer
+                                                        PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.errorContainer
+                                                    }
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = when (monthStatus) {
+                                                    PropertyMonthRentStatus.COLLECTED -> "Collected"
+                                                    PropertyMonthRentStatus.PARTIALLY_PAID -> "Partial"
+                                                    PropertyMonthRentStatus.PENDING_NO_PAYMENT -> "Pending"
+                                                },
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = when (monthStatus) {
+                                                    PropertyMonthRentStatus.COLLECTED -> MaterialTheme.colorScheme.onPrimaryContainer
+                                                    PropertyMonthRentStatus.PARTIALLY_PAID -> MaterialTheme.colorScheme.onTertiaryContainer
+                                                    PropertyMonthRentStatus.PENDING_NO_PAYMENT -> MaterialTheme.colorScheme.onErrorContainer
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    if (house.location.isNotBlank()) {
+                                        Text(
+                                            text = house.location,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (activeTenantName.isNotBlank()) {
+                                        Text(
+                                            text = "👤 $activeTenantName",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                    if (totalPaidForHouse > 0.0 || totalPendingForHouse > 0.0) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            if (totalPaidForHouse > 0.0) {
+                                                Text(
+                                                    text = "Paid: ₹$totalPaidForHouse",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            if (totalPendingForHouse > 0.0) {
+                                                Text(
+                                                    text = "Pending: ₹$totalPendingForHouse",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "View Details",
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
