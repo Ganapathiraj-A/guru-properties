@@ -523,6 +523,71 @@
       font-weight: 600;
       font-size: 0.95rem;
     }
+
+    /* Filter Chips Row */
+    .filter-chips-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 12px;
+      scrollbar-width: none;
+    }
+    .filter-chips-row::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .filter-chip.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+    }
+    .filter-chip.pending-chip.active {
+      background: var(--danger-container);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    /* In-place Details Header & Card */
+    .view-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .view-header h3 {
+      flex: 1;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .detail-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .history-card {
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -538,6 +603,9 @@
           <div class="user-subtitle" id="user-display">Logged in: Admin</div>
         </div>
         <div class="header-actions">
+          <button class="icon-btn" id="btn-home" title="Home / Main Workspace" style="display: none;">
+            <i class="fa-solid fa-house" style="color: var(--primary);"></i>
+          </button>
           <button class="icon-btn" id="btn-settings" title="Settings">
             <i class="fa-solid fa-gear"></i>
           </button>
@@ -583,9 +651,56 @@
         <div class="cards-list" id="rent-list"></div>
       </div>
 
+      <!-- In-Place Rent Detail Section -->
+      <div id="section-rent-detail" style="display: none;">
+        <div class="view-header">
+          <button class="icon-btn" id="btn-rent-detail-back" title="Back to Rent List">
+            <i class="fa-solid fa-arrow-left" style="color: var(--primary); font-size: 1.1rem;"></i>
+          </button>
+          <h3 id="rent-detail-header-title">Rent Collection Details</h3>
+          <button class="btn btn-secondary" id="btn-rent-detail-edit" style="flex: 0; padding: 8px 14px; font-size: 0.85rem;">
+            <i class="fa-solid fa-pen"></i> Edit
+          </button>
+          <button class="btn btn-danger" id="btn-rent-detail-delete" style="flex: 0; padding: 8px 14px; font-size: 0.85rem;">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+        </div>
+        <div class="detail-card" id="rent-detail-content"></div>
+      </div>
+
       <!-- Properties Section -->
       <div id="section-properties" style="display: none;">
+        <!-- Month Filter Chips -->
+        <div class="filter-chips-row" id="prop-filter-chips">
+          <button class="filter-chip active" id="chip-filter-all" onclick="setPropFilter('ALL')">
+            All (<span id="prop-filter-all-count">0</span>)
+          </button>
+          <button class="filter-chip" id="chip-filter-collected" onclick="setPropFilter('COLLECTED')">
+            <i class="fa-solid fa-circle-check" style="color: var(--secondary);"></i> Collected (<span id="prop-filter-collected-count">0</span>)
+          </button>
+          <button class="filter-chip pending-chip" id="chip-filter-pending" onclick="setPropFilter('PENDING')">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i> Pending (<span id="prop-filter-pending-count">0</span>)
+          </button>
+        </div>
         <div class="cards-list" id="properties-list"></div>
+      </div>
+
+      <!-- In-Place Property Detail Section -->
+      <div id="section-property-detail" style="display: none;">
+        <div class="view-header">
+          <button class="icon-btn" id="btn-prop-detail-back" title="Back to Properties List">
+            <i class="fa-solid fa-arrow-left" style="color: var(--primary); font-size: 1.1rem;"></i>
+          </button>
+          <h3 id="prop-detail-header-title">Property Details</h3>
+          <button class="btn btn-secondary" id="btn-prop-detail-edit" style="flex: 0; padding: 8px 14px; font-size: 0.85rem;">
+            <i class="fa-solid fa-pen"></i> Edit
+          </button>
+          <button class="btn btn-danger" id="btn-prop-detail-delete" style="flex: 0; padding: 8px 14px; font-size: 0.85rem;">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+        </div>
+        <div class="detail-card" id="prop-detail-content"></div>
+        <div id="prop-rent-history-section"></div>
       </div>
 
       <!-- Full-Screen Settings View -->
@@ -729,16 +844,6 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Rent Revision (₹)</label>
-            <input type="number" id="prop-revision" class="form-control" placeholder="11000">
-          </div>
-          <div class="form-group">
-            <label>Revision Date</label>
-            <input type="date" id="prop-rev-date" class="form-control">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
             <label>Tenancy Date</label>
             <input type="date" id="prop-tenancy-date" class="form-control">
           </div>
@@ -835,6 +940,35 @@
       <button class="btn btn-primary" id="btn-add-tenant" style="width: 100%;">
         <i class="fa-solid fa-user-plus"></i> Add New Tenant
       </button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Tenant Modal -->
+  <div class="modal-overlay" id="modal-tenant-edit">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="tenant-modal-title">Add Tenant</h3>
+        <button class="icon-btn" onclick="closeModal('modal-tenant-edit')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-tenant">
+        <input type="hidden" id="tenant-doc-id">
+        <div class="form-group">
+          <label>Tenant Name</label>
+          <input type="text" id="tenant-input-name" class="form-control" required placeholder="Tenant Name">
+        </div>
+        <div class="form-group">
+          <label>Assign Property (House)</label>
+          <select id="tenant-input-house" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="tenant-input-phone" class="form-control" placeholder="Phone Number">
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-tenant-edit')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Tenant</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1016,19 +1150,89 @@
       });
     }
 
+    // Helper for formatting date as MMM - yy (e.g., Jan - 26)
+    function formatCollectionDate(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        // Match patterns like YYYY-MM-DD or parseable dates
+        const parts = dateStr.trim().split(/[\sT]+/)[0].split('-');
+        if (parts.length >= 2) {
+          const year = parts[0].length === 4 ? parts[0] : (parts[2] && parts[2].length === 4 ? parts[2] : parts[0]);
+          const monthIdx = parts[0].length === 4 ? parseInt(parts[1], 10) - 1 : parseInt(parts[1], 10) - 1;
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          if (monthIdx >= 0 && monthIdx < 12) {
+            const shortYear = year.slice(-2);
+            return `${months[monthIdx]} - ${shortYear}`;
+          }
+        }
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const shortYear = String(d.getFullYear()).slice(-2);
+          return `${months[d.getMonth()]} - ${shortYear}`;
+        }
+      } catch (e) {
+        console.warn('Date parse error:', e);
+      }
+      return dateStr;
+    }
+
+    // Property Filter State ('ALL', 'COLLECTED', 'PENDING')
+    let currentPropFilter = 'ALL';
+
+    function setPropFilter(filter) {
+      currentPropFilter = filter;
+      document.getElementById('chip-filter-all').classList.toggle('active', filter === 'ALL');
+      document.getElementById('chip-filter-collected').classList.toggle('active', filter === 'COLLECTED');
+      document.getElementById('chip-filter-pending').classList.toggle('active', filter === 'PENDING');
+      render();
+    }
+
+    // Determine current month's collection status for a house
+    function getHouseMonthStatus(h) {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-12
+      const currentYM = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+      // Check if any collection for this house matches current month
+      const match = collections.find(c => {
+        if (!c.houseId || c.houseId.trim().toLowerCase() !== (h.houseName || '').trim().toLowerCase()) return false;
+        if (!c.paidDT) return false;
+        return c.paidDT.startsWith(currentYM);
+      });
+
+      if (match) {
+        const pending = Number(match.pendingAmt) || 0;
+        return { status: pending > 0 ? 'PENDING' : 'COLLECTED', pendingAmt: pending, paidAmt: Number(match.paidAmt) || 0 };
+      }
+      return { status: 'PENDING', pendingAmt: h.monthlyRent || 0, paidAmt: 0 };
+    }
+
     // Navigation & Tabs
     document.getElementById('tab-rent').addEventListener('click', () => switchTab('rent'));
     document.getElementById('tab-properties').addEventListener('click', () => switchTab('properties'));
     document.getElementById('btn-settings').addEventListener('click', () => switchTab('settings'));
     document.getElementById('btn-settings-back').addEventListener('click', () => switchTab('rent'));
+    document.getElementById('btn-home').addEventListener('click', () => switchTab('rent'));
+
+    document.getElementById('btn-rent-detail-back').addEventListener('click', () => switchTab('rent'));
+    document.getElementById('btn-prop-detail-back').addEventListener('click', () => switchTab('properties'));
 
     function switchTab(tab) {
       currentTab = tab;
       document.getElementById('tab-rent').classList.toggle('active', tab === 'rent');
       document.getElementById('tab-properties').classList.toggle('active', tab === 'properties');
+      
       document.getElementById('section-rent').style.display = tab === 'rent' ? 'block' : 'none';
+      document.getElementById('section-rent-detail').style.display = tab === 'rent-detail' ? 'block' : 'none';
       document.getElementById('section-properties').style.display = tab === 'properties' ? 'block' : 'none';
+      document.getElementById('section-property-detail').style.display = tab === 'prop-detail' ? 'block' : 'none';
       document.getElementById('section-settings').style.display = tab === 'settings' ? 'block' : 'none';
+
+      // Header controls & FAB
+      const isSubDetail = (tab === 'rent-detail' || tab === 'prop-detail' || tab === 'settings');
+      document.getElementById('btn-home').style.display = isSubDetail ? 'inline-flex' : 'none';
       document.getElementById('fab-add').style.display = (tab === 'rent' || tab === 'properties') ? 'flex' : 'none';
     }
 
@@ -1049,17 +1253,11 @@
       document.getElementById('total-collected').innerText = `₹${totalCollected}`;
       document.getElementById('total-pending').innerText = `₹${totalPending}`;
 
-      // Filtered Lists
+      // Filtered Rent List
       const filteredRent = collections.filter(c => 
         !searchQuery || 
         (c.houseId && c.houseId.toLowerCase().includes(searchQuery)) ||
         (c.paidBy && c.paidBy.toLowerCase().includes(searchQuery))
-      );
-
-      const filteredHouses = houses.filter(h => 
-        !searchQuery || 
-        (h.houseName && h.houseName.toLowerCase().includes(searchQuery)) ||
-        (h.location && h.location.toLowerCase().includes(searchQuery))
       );
 
       // Rent List Items
@@ -1068,58 +1266,152 @@
         <div class="item-card" onclick="openRentDetail('${c.docId}')">
           <div class="card-title-group">
             <span class="badge secondary">${c.houseId || 'Property'}</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">${formatCollectionDate(c.paidDT)}</span>
           </div>
-          <div class="card-amount">Paid: ₹${c.paidAmt || 0}</div>
+          <div class="card-amount">
+            <span style="color: var(--secondary); font-weight: 600;">Paid: ₹${c.paidAmt || 0}</span>
+            ${(Number(c.pendingAmt) || 0) > 0 ? `<span style="color: var(--danger); font-size: 0.8rem; margin-left: 8px;">Pending: ₹${c.pendingAmt}</span>` : ''}
+          </div>
           <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
         </div>
       `).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No rent records found</div>';
 
+      // Count Month Statuses for All Houses
+      let countAll = houses.length;
+      let countCollected = 0;
+      let countPending = 0;
+
+      const houseStatuses = new Map();
+      houses.forEach(h => {
+        const stat = getHouseMonthStatus(h);
+        houseStatuses.set(h.docId, stat);
+        if (stat.status === 'COLLECTED') countCollected++;
+        else countPending++;
+      });
+
+      document.getElementById('prop-filter-all-count').innerText = countAll;
+      document.getElementById('prop-filter-collected-count').innerText = countCollected;
+      document.getElementById('prop-filter-pending-count').innerText = countPending;
+
+      // Filtered Houses List
+      const filteredHouses = houses.filter(h => {
+        const matchesSearch = !searchQuery || 
+          (h.houseName && h.houseName.toLowerCase().includes(searchQuery)) ||
+          (h.location && h.location.toLowerCase().includes(searchQuery)) ||
+          (h.tenantName && h.tenantName.toLowerCase().includes(searchQuery));
+        
+        if (!matchesSearch) return false;
+
+        const stat = houseStatuses.get(h.docId);
+        if (currentPropFilter === 'COLLECTED') return stat && stat.status === 'COLLECTED';
+        if (currentPropFilter === 'PENDING') return stat && stat.status === 'PENDING';
+        return true;
+      });
+
       // Properties List Items
       const propListEl = document.getElementById('properties-list');
-      propListEl.innerHTML = filteredHouses.map(h => `
-        <div class="item-card" onclick="openPropertyDetail('${h.docId}')">
-          <div class="card-title-group">
-            <div class="card-name">${h.houseName}</div>
+      propListEl.innerHTML = filteredHouses.map(h => {
+        const stat = houseStatuses.get(h.docId) || { status: 'PENDING' };
+        const isColl = stat.status === 'COLLECTED';
+        const badgeClass = isColl ? 'badge secondary' : 'badge danger';
+        const badgeIcon = isColl ? '<i class="fa-solid fa-circle-check"></i> Rent Paid' : '<i class="fa-solid fa-triangle-exclamation"></i> Rent Pending';
+
+        return `
+          <div class="item-card" onclick="openPropertyDetail('${h.docId}')">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="card-name">${h.houseName}</span>
+                <span class="${badgeClass}" style="font-size: 0.72rem; padding: 2px 8px;">${badgeIcon}</span>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                👤 ${h.tenantName || 'Unassigned'} • ₹${h.monthlyRent || 0}/mo
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
           </div>
-          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
-        </div>
-      `).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No properties found</div>';
+        `;
+      }).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No properties found</div>';
     }
 
-    // Detail Modals
+    // In-Place Rent Detail View
     function openRentDetail(docId) {
       const c = collections.find(x => x.docId === docId);
       if (!c) return;
-      document.getElementById('detail-title').innerText = `Rent Log (${c.houseId})`;
-      document.getElementById('detail-body').innerHTML = `
-        <div class="detail-row"><label>Paid Amount</label><val style="color: var(--primary);">₹${c.paidAmt || 0}</val></div>
-        <div class="detail-row"><label>Pending Amount</label><val style="color: var(--danger);">₹${c.pendingAmt || 0}</val></div>
+
+      document.getElementById('rent-detail-header-title').innerText = `${c.houseId || 'Rent Record'} Details`;
+      document.getElementById('rent-detail-content').innerHTML = `
+        <div class="detail-row"><label>Property</label><val><strong>${c.houseId || '-'}</strong></val></div>
+        <div class="detail-row"><label>Month / Date</label><val><strong>${formatCollectionDate(c.paidDT)}</strong> (${c.paidDT || '-'})</val></div>
+        <div class="detail-row"><label>Paid Amount</label><val style="color: var(--secondary); font-size: 1.1rem; font-weight: 700;">₹${c.paidAmt || 0}</val></div>
+        <div class="detail-row"><label>Pending Amount</label><val style="color: var(--danger); font-weight: 600;">₹${c.pendingAmt || 0}</val></div>
         <div class="detail-row"><label>Paid By</label><val>${c.paidBy || '-'}</val></div>
         <div class="detail-row"><label>Payment Mode</label><val>${c.paidThru || 'UPI'}</val></div>
-        <div class="detail-row"><label>Date & Time</label><val>${c.paidDT || '-'}</val></div>
       `;
-      document.getElementById('btn-detail-edit').onclick = () => { closeModal('modal-detail'); openEditRentModal(c); };
-      document.getElementById('btn-detail-delete').onclick = () => { closeModal('modal-detail'); deleteCollection(docId); };
-      openModal('modal-detail');
+
+      document.getElementById('btn-rent-detail-edit').onclick = () => openEditRentModal(c);
+      document.getElementById('btn-rent-detail-delete').onclick = () => {
+        deleteCollection(docId).then(() => switchTab('rent'));
+      };
+
+      switchTab('rent-detail');
     }
 
+    // In-Place Property Detail View with Rent History
     function openPropertyDetail(docId) {
       const h = houses.find(x => x.docId === docId);
       if (!h) return;
-      document.getElementById('detail-title').innerText = h.houseName;
-      document.getElementById('detail-body').innerHTML = `
+
+      document.getElementById('prop-detail-header-title').innerText = h.houseName || 'Property Details';
+      
+      // Property Details
+      document.getElementById('prop-detail-content').innerHTML = `
         <div class="detail-row"><label>📍 Location</label><val>${h.location || 'Not specified'}</val></div>
-        <div class="detail-row"><label>Monthly Rent</label><val>₹${h.monthlyRent || 0}</val></div>
+        <div class="detail-row"><label>Monthly Rent</label><val style="color: var(--primary); font-weight: 700;">₹${h.monthlyRent || 0}</val></div>
         <div class="detail-row"><label>Advance Deposit</label><val>₹${h.advance || 0}</val></div>
-        <div class="detail-row"><label>Rent Revision</label><val>₹${h.monthlyRentRevision || 0}</val></div>
-        <div class="detail-row"><label>Revision Date</label><val>${h.revisionDate || '-'}</val></div>
         <div class="detail-row"><label>Tenancy Date</label><val>${h.tenancyDate || '-'}</val></div>
-        <div class="detail-row"><label>👤 Tenant Name</label><val>${h.tenantName || 'Unoccupied'}</val></div>
+        <div class="detail-row"><label>👤 Tenant Name</label><val><strong>${h.tenantName || 'Unoccupied'}</strong></val></div>
         <div class="detail-row"><label>📞 Phone</label><val>${h.phoneNumber || '-'}</val></div>
       `;
-      document.getElementById('btn-detail-edit').onclick = () => { closeModal('modal-detail'); openEditPropertyModal(h); };
-      document.getElementById('btn-detail-delete').onclick = () => { closeModal('modal-detail'); deleteHouse(docId); };
-      openModal('modal-detail');
+
+      // Rent History for this specific Property
+      const propCollections = collections.filter(c => 
+        c.houseId && c.houseId.trim().toLowerCase() === (h.houseName || '').trim().toLowerCase()
+      );
+
+      const totalPaidForProp = propCollections.reduce((sum, c) => sum + (Number(c.paidAmt) || 0), 0);
+      const totalPendingForProp = propCollections.reduce((sum, c) => sum + (Number(c.pendingAmt) || 0), 0);
+
+      const historyHtml = propCollections.map(c => `
+        <div class="history-card" onclick="openRentDetail('${c.docId}')" style="cursor: pointer;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <strong style="color: var(--primary);">${formatCollectionDate(c.paidDT)}</strong>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">${c.paidThru || 'UPI'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.88rem;">
+            <span style="color: var(--secondary); font-weight: 600;">Paid: ₹${c.paidAmt || 0}</span>
+            <span style="color: ${(Number(c.pendingAmt) || 0) > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-weight: 600;">
+              Pending: ₹${c.pendingAmt || 0}
+            </span>
+          </div>
+        </div>
+      `).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 16px;">No collection history recorded yet</div>';
+
+      document.getElementById('prop-rent-history-section').innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px;">
+          <h4 style="margin: 0; font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Rent Collection History (${propCollections.length})</h4>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">
+            Total: <span style="color: var(--secondary); font-weight: 600;">₹${totalPaidForProp}</span>
+          </div>
+        </div>
+        ${historyHtml}
+      `;
+
+      document.getElementById('btn-prop-detail-edit').onclick = () => openEditPropertyModal(h);
+      document.getElementById('btn-prop-detail-delete').onclick = () => {
+        deleteHouse(docId).then(() => switchTab('properties'));
+      };
+
+      switchTab('prop-detail');
     }
 
     // Modal Controls
@@ -1140,8 +1432,6 @@
       document.getElementById('prop-location').value = h ? h.location : '';
       document.getElementById('prop-rent').value = h ? h.monthlyRent : '';
       document.getElementById('prop-advance').value = h ? h.advance : '';
-      document.getElementById('prop-revision').value = h ? h.monthlyRentRevision : '';
-      document.getElementById('prop-rev-date').value = h ? h.revisionDate : '';
       document.getElementById('prop-tenancy-date').value = h ? h.tenancyDate : '';
       document.getElementById('prop-phone').value = h ? h.phoneNumber : '';
 
@@ -1158,19 +1448,13 @@
       e.preventDefault();
       const docId = document.getElementById('prop-doc-id').value;
       const houseName = document.getElementById('prop-name').value.trim();
-      const existingHouse = docId ? houses.find(h => h.docId === docId) : null;
-      const sNoValue = existingHouse && existingHouse.sNo ? existingHouse.sNo : (houses.length + 1);
 
       const data = {
-        sNo: sNoValue,
-        sno: sNoValue,
         houseId: houseName,
         houseName: houseName,
         location: document.getElementById('prop-location').value.trim(),
         monthlyRent: Number(document.getElementById('prop-rent').value) || 0,
         advance: Number(document.getElementById('prop-advance').value) || 0,
-        monthlyRentRevision: Number(document.getElementById('prop-revision').value) || 0,
-        revisionDate: document.getElementById('prop-rev-date').value,
         tenancyDate: document.getElementById('prop-tenancy-date').value,
         tenantName: document.getElementById('prop-tenant-name').value,
         phoneNumber: document.getElementById('prop-phone').value.trim()
@@ -1183,6 +1467,7 @@
           await db.collection('houses').add(data);
         }
         closeModal('modal-property');
+        if (currentTab === 'prop-detail') openPropertyDetail(docId);
         alert(`Property "${houseName}" saved successfully!`);
       } catch (err) {
         console.error("Failed to save property:", err);
@@ -1217,12 +1502,8 @@
     document.getElementById('form-rent').addEventListener('submit', async (e) => {
       e.preventDefault();
       const docId = document.getElementById('rent-doc-id').value;
-      const existingCollection = docId ? collections.find(c => c.docId === docId) : null;
-      const sNoValue = existingCollection && existingCollection.sNo ? existingCollection.sNo : (collections.length + 1);
 
       const data = {
-        sNo: sNoValue,
-        sno: sNoValue,
         houseId: document.getElementById('rent-prop-select').value,
         paidAmt: Number(document.getElementById('rent-paid').value) || 0,
         pendingAmt: Number(document.getElementById('rent-pending').value) || 0,
@@ -1238,6 +1519,7 @@
           await db.collection('collections').add(data);
         }
         closeModal('modal-rent');
+        if (currentTab === 'rent-detail') openRentDetail(docId);
         alert('Rent collection saved successfully!');
       } catch (err) {
         console.error("Failed to save rent collection:", err);
@@ -1300,31 +1582,116 @@
 
     // Tenant Administration Modal Actions
     document.getElementById('btn-manage-tenants').addEventListener('click', () => {
-      const listEl = document.getElementById('tenants-list');
-      listEl.innerHTML = tenants.map(t => `
-        <div class="item-card" style="cursor: default;">
-          <div>
-            <div class="card-name">${t.tenantName}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Phone: ${t.phoneNumber || '-'}</div>
-          </div>
-          <button class="icon-btn danger" onclick="deleteTenant('${t.docId}')"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      `).join('');
+      renderTenantsList();
       openModal('modal-tenants');
     });
 
+    function renderTenantsList() {
+      const listEl = document.getElementById('tenants-list');
+      listEl.innerHTML = tenants.map(t => {
+        // Find assigned house
+        const assignedHouse = houses.find(h => 
+          (t.associatedHouse && t.associatedHouse === h.houseName) || 
+          (h.tenantName && h.tenantName.trim().toLowerCase() === t.tenantName.trim().toLowerCase())
+        );
+        const houseDisplayName = assignedHouse ? assignedHouse.houseName : (t.associatedHouse || 'Unassigned');
+
+        return `
+          <div class="item-card" style="cursor: pointer;" onclick="openEditTenantModal('${t.docId}')">
+            <div style="flex: 1;">
+              <div class="card-name">${t.tenantName}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">
+                🏠 ${houseDisplayName} • 📞 ${t.phoneNumber || '-'}
+              </div>
+            </div>
+            <button class="icon-btn danger" onclick="event.stopPropagation(); deleteTenant('${t.docId}')"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+      }).join('') || '<div style="text-align: center; color: var(--text-muted); padding: 16px;">No tenants found</div>';
+    }
+
     document.getElementById('btn-add-tenant').addEventListener('click', () => {
-      const name = prompt('Enter Tenant Name:');
-      if (name) {
-        db.collection('tenants').add({
-          tenantName: name.trim(),
-          phoneNumber: '',
-          addedAt: new Date().toISOString().slice(0, 10)
-        });
+      openEditTenantModal(null);
+    });
+
+    function openEditTenantModal(docId) {
+      const t = docId ? tenants.find(x => x.docId === docId) : null;
+      document.getElementById('tenant-modal-title').innerText = t ? 'Edit Tenant' : 'Add Tenant';
+      document.getElementById('tenant-doc-id').value = t ? t.docId : '';
+      document.getElementById('tenant-input-name').value = t ? t.tenantName : '';
+      document.getElementById('tenant-input-phone').value = t ? (t.phoneNumber || '') : '';
+
+      // House dropdown
+      const houseSelect = document.getElementById('tenant-input-house');
+      houseSelect.innerHTML = '<option value="">-- No House Assigned --</option>' +
+        houses.map(h => `<option value="${h.houseName}">${h.houseName}</option>`).join('');
+
+      if (t) {
+        // Find existing assigned house
+        const assignedHouse = houses.find(h => 
+          (t.associatedHouse && t.associatedHouse === h.houseName) || 
+          (h.tenantName && h.tenantName.trim().toLowerCase() === t.tenantName.trim().toLowerCase())
+        );
+        if (assignedHouse) houseSelect.value = assignedHouse.houseName;
+        else if (t.associatedHouse) houseSelect.value = t.associatedHouse;
+      } else {
+        houseSelect.value = '';
+      }
+
+      openModal('modal-tenant-edit');
+    }
+
+    document.getElementById('form-tenant').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('tenant-doc-id').value;
+      const tenantName = document.getElementById('tenant-input-name').value.trim();
+      const phoneNumber = document.getElementById('tenant-input-phone').value.trim();
+      const selectedHouse = document.getElementById('tenant-input-house').value;
+
+      const tenantData = {
+        tenantName: tenantName,
+        phoneNumber: phoneNumber,
+        associatedHouse: selectedHouse,
+        addedAt: new Date().toISOString().slice(0, 10)
+      };
+
+      try {
+        if (docId) {
+          await db.collection('tenants').doc(docId).set(tenantData, { merge: true });
+        } else {
+          await db.collection('tenants').add(tenantData);
+        }
+
+        // Two-way synchronization with house record
+        if (selectedHouse) {
+          const targetHouse = houses.find(h => h.houseName === selectedHouse);
+          if (targetHouse) {
+            await db.collection('houses').doc(targetHouse.docId).set({
+              tenantName: tenantName,
+              phoneNumber: phoneNumber || targetHouse.phoneNumber || ''
+            }, { merge: true });
+          }
+        }
+
+        closeModal('modal-tenant-edit');
+        renderTenantsList();
+        alert('Tenant saved successfully!');
+      } catch (err) {
+        console.error("Failed to save tenant:", err);
+        alert(`Failed to save tenant: ${err.message}`);
       }
     });
 
-    function deleteTenant(docId) { db.collection('tenants').doc(docId).delete(); }
+    async function deleteTenant(docId) {
+      if (confirm('Delete this tenant?')) {
+        try {
+          await db.collection('tenants').doc(docId).delete();
+          renderTenantsList();
+        } catch (err) {
+          alert(`Failed to delete tenant: ${err.message}`);
+        }
+      }
+    }
   </script>
 </body>
 </html>
