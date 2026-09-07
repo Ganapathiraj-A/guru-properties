@@ -60,23 +60,29 @@ fun LoginScreen(
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
 
+    val prefs = remember { context.getSharedPreferences("guru_auth_prefs", android.content.Context.MODE_PRIVATE) }
+
     val processLogin: (String, String) -> Unit = { email, name ->
         val result = onLoginAttempt(email, name)
         if (result.isSuccess) {
             errorMessage = null
+            prefs.edit().putBoolean("is_logged_in", true).apply()
             Toast.makeText(context, "Welcome, ${result.getOrNull()?.displayName}!", Toast.LENGTH_SHORT).show()
         } else {
             errorMessage = result.exceptionOrNull()?.message ?: "Authorization check failed."
         }
     }
 
-    // Automatically check for existing signed-in Google account and restore session on app start
+    // Automatically check for existing signed-in Google account and restore session ONLY IF user was previously logged in
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
-        if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
-            val email = lastAccount.email!!
-            val name = lastAccount.displayName ?: lastAccount.givenName ?: "Google User"
-            processLogin(email, name)
+        val isLoggedIn = prefs.getBoolean("is_logged_in", false)
+        if (isLoggedIn) {
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
+                val email = lastAccount.email!!
+                val name = lastAccount.displayName ?: lastAccount.givenName ?: "Google User"
+                processLogin(email, name)
+            }
         }
     }
 
@@ -97,14 +103,8 @@ fun LoginScreen(
             }
         } catch (e: ApiException) {
             Log.e("LoginScreen", "Google Sign-In API Exception code: ${e.statusCode}", e)
-            // Try extracting last account if intent result status was OK
-            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
-            if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
-                val email = lastAccount.email!!
-                val name = lastAccount.displayName ?: "Google User"
-                processLogin(email, name)
-            } else {
-                errorMessage = "Google Sign-In failed or was cancelled (Code ${e.statusCode}). Please select an account."
+            if (e.statusCode != 12501) { // 12501 is user cancel
+                errorMessage = "Google Sign-In failed (Code ${e.statusCode}). Please select an account."
             }
         } catch (e: Exception) {
             Log.e("LoginScreen", "Google Sign-In Exception", e)

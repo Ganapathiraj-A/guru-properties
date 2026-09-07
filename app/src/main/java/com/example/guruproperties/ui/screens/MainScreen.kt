@@ -119,6 +119,8 @@ fun MainScreen(
                 onNavigateToUserManagement = { currentView = CurrentView.USER_MANAGEMENT },
                 onNavigateToTenantManagement = { currentView = CurrentView.TENANT_MANAGEMENT },
                 onSignOut = {
+                    val prefs = context.getSharedPreferences("guru_auth_prefs", android.content.Context.MODE_PRIVATE)
+                    prefs.edit().putBoolean("is_logged_in", false).apply()
                     val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
                         com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
                     ).requestEmail().build()
@@ -199,7 +201,15 @@ fun MainScreen(
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                IconButton(onClick = { viewModel.signOut() }) {
+                                IconButton(onClick = {
+                                    val prefs = context.getSharedPreferences("guru_auth_prefs", android.content.Context.MODE_PRIVATE)
+                                    prefs.edit().putBoolean("is_logged_in", false).apply()
+                                    val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                        com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                                    ).requestEmail().build()
+                                    com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso).signOut()
+                                    viewModel.signOut()
+                                }) {
                                     Icon(
                                         imageVector = Icons.Default.Logout,
                                         contentDescription = "Sign Out",

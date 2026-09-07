@@ -1004,12 +1004,21 @@
       }
     }
 
+    let isLoggingOut = false;
+
+    // Check if user explicitly logged out
+    const isExplicitlyLoggedOut = localStorage.getItem('guru_logged_out') === 'true';
+
     // Auth Change Handler (Persistent across restarts)
     auth.onAuthStateChanged(user => {
+      if (isLoggingOut) return;
+      if (localStorage.getItem('guru_logged_out') === 'true') {
+        document.getElementById('login-overlay').style.display = 'flex';
+        return;
+      }
       if (user && user.email) {
         verifyAndLogin(user.email, user.displayName || 'User');
       } else {
-        // Only show login if no valid cached local user
         if (!localStorage.getItem('guru_logged_user')) {
           document.getElementById('login-overlay').style.display = 'flex';
         }
@@ -1018,6 +1027,7 @@
 
     // Handle Redirect Result
     auth.getRedirectResult().then(result => {
+      if (isLoggingOut || localStorage.getItem('guru_logged_out') === 'true') return;
       if (result && result.user && result.user.email) {
         verifyAndLogin(result.user.email, result.user.displayName || 'User');
       }
@@ -1026,10 +1036,12 @@
     });
 
     function verifyAndLogin(email, displayName) {
+      if (isLoggingOut) return;
       const cleanEmail = email.trim().toLowerCase();
       const isAuthorized = defaultAdmins.includes(cleanEmail) || users.some(u => u.email && u.email.trim().toLowerCase() === cleanEmail);
 
       if (isAuthorized || defaultAdmins.some(a => cleanEmail.includes(a.split('@')[0]))) {
+        localStorage.removeItem('guru_logged_out');
         currentUser = { email: cleanEmail, name: displayName || 'Guru User' };
         localStorage.setItem('guru_logged_user', JSON.stringify(currentUser));
         document.getElementById('user-display').innerText = `Logged in: ${currentUser.name} (${currentUser.email})`;
@@ -1050,6 +1062,8 @@
 
     // Google Login Button
     document.getElementById('btn-google-login').addEventListener('click', () => {
+      isLoggingOut = false;
+      localStorage.removeItem('guru_logged_out');
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
@@ -1068,14 +1082,20 @@
 
     let activeUnsubscribes = [];
 
-    document.getElementById('btn-signout').addEventListener('click', () => {
-      auth.signOut();
+    document.getElementById('btn-signout').addEventListener('click', async () => {
+      isLoggingOut = true;
+      localStorage.setItem('guru_logged_out', 'true');
       localStorage.removeItem('guru_logged_user');
       currentUser = null;
       // Detach all listeners
       activeUnsubscribes.forEach(unsub => { try { unsub(); } catch(e) {} });
       activeUnsubscribes = [];
       document.getElementById('login-overlay').style.display = 'flex';
+      try {
+        await auth.signOut();
+      } catch(e) {
+        console.warn('Sign out error:', e);
+      }
     });
 
     // Firestore Realtime Listeners (Pure Cloud Firestore)
